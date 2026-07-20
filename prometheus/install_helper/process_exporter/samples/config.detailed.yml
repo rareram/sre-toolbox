@@ -1,0 +1,10 @@
+# Process Exporter 상세 수집 설정 샘플 (개발 및 디버깅 환경 권장)
+#
+# 모든 프로세스를 PID 및 실행 사용자(Username) 단위로 추적합니다.
+# 주의: 프로세스가 자주 재기동되는 환경에서는 시계열 폭증으로 인해 
+# Prometheus 서버가 마비될 수 있습니다.
+
+process_names:
+  - name: "{{.Comm}}({{.PID}}) [USER: {{.Username}}]"
+    cmdline:
+      - '.+'

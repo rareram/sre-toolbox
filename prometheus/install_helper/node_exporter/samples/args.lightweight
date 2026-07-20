@@ -1,0 +1,17 @@
+# Node Exporter 경량 수집 모드 실행 인수 샘플
+#
+# 이 인수를 서비스 기동 시 추가하면 대규모 서버 모니터링 환경에서
+# 카디널리티 폭증을 방지하고 수집 용량을 절약할 수 있습니다.
+#
+# 적용 방법:
+# /etc/systemd/system/node_exporter.service의 ExecStart 라인 뒤에 추가하거나
+# Environment 변수의 인자값으로 설정합니다.
+
+--no-collector.arp
+--no-collector.bcache
+--no-collector.entropy
+--no-collector.nfs
+--no-collector.nfsd
+--no-collector.wifi
+--no-collector.zfs
+--no-collector.ipvs

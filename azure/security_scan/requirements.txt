@@ -1,0 +1,6 @@
+azure-functions
+azure-identity
+azure-mgmt-compute
+azure-mgmt-storage
+azure-mgmt-network
+azure-mgmt-sql

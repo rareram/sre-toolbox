@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Grafana to Teams Sender",
+  "version": "0.3.10",
+  "description": "Send Grafana graphs to MS Teams chats",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
+    "clipboardWrite",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "http://192.168.236.190:3000/*",
+    "https://sqms.skshieldus.com:3000/*",
+    "*://teams.live.com/*",
+    "*://teams.microsoft.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3000/*", "http://192.168.236.190:3000/*", "https://sqms.skshieldus.com:3000/*"],
+      "js": ["content-grafana.js"]
+    },
+    {
+      "matches": ["*://teams.microsoft.com/*", "*://teams.live.com/*"],
+      "js": ["content-teams.js"]
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": ["html2canvas.min.js"],
+    "matches": ["http://localhost:3000/*", "http://192.168.236.190:3000/*", "https://sqms.skshieldus.com:3000/*"]
+  }]
+}
