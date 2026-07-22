@@ -36,8 +36,8 @@ def export_to_svg(width, height, items, output_path):
         b64_data = base64.b64encode(item.file_data).decode('utf-8')
         href = f"data:{mime};base64,{b64_data}"
         
-        # Write image element
-        xml.append(f'  <image href="{href}" x="{x}" y="{y}" width="{w}" height="{h}" />')
+        # Write image element with exact 1-to-1 canvas ratio preservation
+        xml.append(f'  <image href="{href}" x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="none" />')
         
     xml.append('</svg>')
     

@@ -2,21 +2,32 @@ import sys
 import os
 import base64
 from PySide6.QtCore import Qt, QRectF, QPointF, QTimer
-from PySide6.QtGui import QPixmap, QIcon, QImage, QColor
+from PySide6.QtGui import QPixmap, QIcon, QImage, QColor, QPainter
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QGridLayout, QLabel, QPushButton, QComboBox, QSpinBox, QListWidget,
     QListWidgetItem, QGraphicsView, QFileDialog, QFrame, QAbstractItemView,
-    QMessageBox, QGroupBox, QRadioButton, QToolTip
+    QMessageBox, QGroupBox, QRadioButton, QToolTip, QCheckBox
 )
 
 from editor import EditorCanvas, ImageLayerItem
 from exporter import export_to_svg
 
+class CustomGraphicsView(QGraphicsView):
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down):
+            scene = self.scene()
+            if scene:
+                scene.keyPressEvent(event)
+                if event.isAccepted():
+                    return
+        super().keyPressEvent(event)
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("SVG Converter & Compositor")
+        self.setWindowTitle("SVG Converter")
+        #self.setWindowIcon(QIcon("icon.png"))
         self.resize(1200, 800)
         
         # Apply premium dark theme styling via QSS
@@ -120,9 +131,21 @@ class MainWindow(QMainWindow):
         
         # Header Toolbar
         header_layout = QHBoxLayout()
-        header_title = QLabel("SVG Converter & Compositor")
+        
+        title_box = QVBoxLayout()
+        title_box.setSpacing(2)
+        
+        header_title = QLabel("SVG Converter")
         header_title.setObjectName("title")
-        header_layout.addWidget(header_title)
+        header_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #ffffff;")
+        
+        header_subtitle = QLabel("Grafana Login Background Generator")
+        header_subtitle.setStyleSheet("font-size: 12px; color: #00d2ff; font-weight: 500;")
+        
+        title_box.addWidget(header_title)
+        title_box.addWidget(header_subtitle)
+        
+        header_layout.addLayout(title_box)
         header_layout.addStretch()
         
         self.export_btn = QPushButton("SVG 파일 변환 저장")
@@ -174,8 +197,10 @@ class MainWindow(QMainWindow):
         custom_res_layout.addWidget(self.custom_h)
         res_layout.addLayout(custom_res_layout)
         
-        self.recommend_lbl = QLabel("※ Grafana 로그인 화면 제작 시 FHD 크기를 권장합니다.")
-        self.recommend_lbl.setStyleSheet("color: #0078d7; font-size: 11px;")
+        self.recommend_lbl = QLabel("💡 Grafana 로그인 배경사이즈는은 FHD 권장")
+        self.recommend_lbl.setWordWrap(True)
+        self.recommend_lbl.setToolTip("Grafana 로그인 화면 제작 시 표준 FHD(1920x1080) 해상도가 가장 잘 맞습니다.")
+        self.recommend_lbl.setStyleSheet("color: #00d2ff; font-size: 11px; margin-top: 4px;")
         res_layout.addWidget(self.recommend_lbl)
         
         left_layout.addWidget(res_group)
@@ -194,6 +219,22 @@ class MainWindow(QMainWindow):
         layer_btn_layout.addWidget(self.set_bg_btn)
         layer_btn_layout.addWidget(self.add_overlay_btn)
         left_layout.addWidget(layer_btn_group)
+        
+        # Background Reset Group
+        bg_reset_group = QGroupBox("배경 배치 초기화")
+        bg_reset_layout = QVBoxLayout(bg_reset_group)
+        
+        self.reset_bg_fit_btn = QPushButton("캔버스 꽉 맞춤 리셋")
+        self.reset_bg_fit_btn.setObjectName("secondary_btn")
+        self.reset_bg_fit_btn.clicked.connect(self.reset_background_fit)
+        
+        self.reset_bg_aspect_btn = QPushButton("원본비율 중앙 정렬 리셋")
+        self.reset_bg_aspect_btn.setObjectName("secondary_btn")
+        self.reset_bg_aspect_btn.clicked.connect(self.reset_background_aspect_center)
+        
+        bg_reset_layout.addWidget(self.reset_bg_fit_btn)
+        bg_reset_layout.addWidget(self.reset_bg_aspect_btn)
+        left_layout.addWidget(bg_reset_group)
         
         # Layer List Group
         layer_list_group = QGroupBox("레이어 목록 (Z-Index)")
@@ -216,8 +257,8 @@ class MainWindow(QMainWindow):
         self.canvas = EditorCanvas()
         self.canvas.selection_updated.connect(self.on_scene_selection_changed)
         
-        self.view = QGraphicsView(self.canvas)
-        self.view.setRenderHint(Qt.TransformationFlag.SmoothPixmapTransform)
+        self.view = CustomGraphicsView(self.canvas)
+        self.view.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         
         # Fit View button on top of canvas
         canvas_container = QWidget()
@@ -270,6 +311,11 @@ class MainWindow(QMainWindow):
         prop_layout.addWidget(self.prop_w, 1, 1)
         prop_layout.addWidget(QLabel("H:"), 1, 2)
         prop_layout.addWidget(self.prop_h, 1, 3)
+        
+        self.prop_keep_aspect = QCheckBox("비율 고정 (Keep Aspect)")
+        self.prop_keep_aspect.setChecked(True)
+        self.prop_keep_aspect.toggled.connect(self.on_keep_aspect_toggled)
+        prop_layout.addWidget(self.prop_keep_aspect, 2, 0, 1, 4)
         
         right_layout.addWidget(prop_group)
         
@@ -326,6 +372,19 @@ class MainWindow(QMainWindow):
         conv_layout.addWidget(self.vector_radio)
         right_layout.addWidget(conv_group)
         
+        # Quick Shortcuts Help Box
+        help_group = QGroupBox("💡 단축 조작 팁")
+        help_layout = QVBoxLayout(help_group)
+        help_text = QLabel(
+            "• <b>방향키</b>: 선택 레이어 1px 미세 이동<br>"
+            "• <b>Shift + 방향키</b>: 10px 고속 이동<br>"
+            "• <b>Shift + 드래그</b>: 비율 고정 리사이즈<br>"
+            "• <b>W / H 입력</b>: 정밀 수치 직접 수정"
+        )
+        help_text.setStyleSheet("color: #a0a0b0; font-size: 12px; line-height: 150%;")
+        help_layout.addWidget(help_text)
+        right_layout.addWidget(help_group)
+        
         right_layout.addStretch()
         
         # Assemble body layout
@@ -334,6 +393,35 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(right_panel)
         
         main_layout.addLayout(body_layout)
+        
+        # Bottom Guide / Info Bar
+        guide_bar = QFrame()
+        guide_bar.setObjectName("guide_bar")
+        guide_bar.setStyleSheet("""
+            QFrame#guide_bar {
+                background-color: #16161a;
+                border-top: 1px solid #2d2d38;
+                border-radius: 4px;
+            }
+            QLabel {
+                font-size: 12px;
+                color: #b0b0c0;
+            }
+        """)
+        guide_layout = QHBoxLayout(guide_bar)
+        guide_layout.setContentsMargins(15, 8, 15, 8)
+        guide_layout.setSpacing(25)
+        
+        tip1_lbl = QLabel("<b style='color:#00d2ff;'>💡 방향키</b> 1px 이동 &nbsp;|&nbsp; <b style='color:#00d2ff;'>Shift + 방향키</b> 10px 고속 이동")
+        tip2_lbl = QLabel("<b style='color:#00d2ff;'>📐 Shift + 드래그</b> 비율 고정 리사이즈")
+        tip3_lbl = QLabel("<b style='color:#00d2ff;'>🖱️ 마우스</b> 배치 & 핸들 크기 조절")
+        
+        guide_layout.addWidget(tip1_lbl)
+        guide_layout.addWidget(tip2_lbl)
+        guide_layout.addWidget(tip3_lbl)
+        guide_layout.addStretch()
+        
+        main_layout.addWidget(guide_bar)
         
         # Default state
         self.show_properties(None)
@@ -406,14 +494,31 @@ class MainWindow(QMainWindow):
                     self.canvas.removeItem(item)
                     self.remove_from_list(item)
                     
-            # Create background item (matches canvas size, locked position)
+            # Create background item (Preserve aspect ratio & cover canvas centered)
             bg_item = ImageLayerItem(
                 pixmap, filename, file_data, is_background=True
             )
             self.canvas.addItem(bg_item)
-            bg_item.setPos(0, 0)
+            
+            pw = pixmap.width()
+            ph = pixmap.height()
+            cw = self.canvas.canvas_width
+            ch = self.canvas.canvas_height
+            
+            ratio = pw / max(1.0, ph)
+            w = cw
+            h = w / ratio
+            if h < ch:
+                h = ch
+                w = h * ratio
+                
+            x = (cw - w) / 2.0
+            y = (ch - h) / 2.0
+            
+            bg_item.setPos(x, y)
             bg_item.prepareGeometryChange()
-            bg_item.rect = QRectF(0, 0, self.canvas.canvas_width, self.canvas.canvas_height)
+            bg_item.rect = QRectF(0, 0, w, h)
+            bg_item.start_aspect_ratio = ratio
             bg_item.update()
             
             # Add to list widget as bottom layer
@@ -564,11 +669,16 @@ class MainWindow(QMainWindow):
         self.prop_y.setEnabled(not is_bg)
         self.prop_w.setEnabled(not is_bg)
         self.prop_h.setEnabled(not is_bg)
+        self.prop_keep_aspect.setEnabled(not is_bg)
         
         self.prop_x.setValue(int(item.x()))
         self.prop_y.setValue(int(item.y()))
         self.prop_w.setValue(int(item.rect.width()))
         self.prop_h.setValue(int(item.rect.height()))
+        
+        self.prop_keep_aspect.blockSignals(True)
+        self.prop_keep_aspect.setChecked(item.keep_aspect_ratio)
+        self.prop_keep_aspect.blockSignals(False)
         
         self.block_property_updates = False
 
@@ -576,16 +686,34 @@ class MainWindow(QMainWindow):
         if self.selected_graphics_item:
             self.show_properties(self.selected_graphics_item)
 
+    def on_keep_aspect_toggled(self, checked):
+        if self.selected_graphics_item and not self.block_property_updates:
+            self.selected_graphics_item.keep_aspect_ratio = checked
+
     def on_property_edited(self):
         if not self.selected_graphics_item or self.block_property_updates:
             return
             
         self.selected_graphics_item.changed.disconnect(self.update_properties_from_item)
         
+        sender = self.sender()
         x = self.prop_x.value()
         y = self.prop_y.value()
         w = self.prop_w.value()
         h = self.prop_h.value()
+        
+        if self.selected_graphics_item.keep_aspect_ratio and self.selected_graphics_item.start_aspect_ratio > 0:
+            aspect = self.selected_graphics_item.start_aspect_ratio
+            if sender == self.prop_w:
+                h = max(1, int(round(w / aspect)))
+                self.prop_h.blockSignals(True)
+                self.prop_h.setValue(h)
+                self.prop_h.blockSignals(False)
+            elif sender == self.prop_h:
+                w = max(1, int(round(h * aspect)))
+                self.prop_w.blockSignals(True)
+                self.prop_w.setValue(w)
+                self.prop_w.blockSignals(False)
         
         self.selected_graphics_item.setPos(x, y)
         self.selected_graphics_item.prepareGeometryChange()
@@ -623,6 +751,48 @@ class MainWindow(QMainWindow):
             
         item.setPos(x, y)
         self.show_properties(item)
+
+    def reset_background_fit(self):
+        for item in self.canvas.items():
+            if isinstance(item, ImageLayerItem) and item.is_background:
+                cw = self.canvas.canvas_width
+                ch = self.canvas.canvas_height
+                item.setPos(0, 0)
+                item.prepareGeometryChange()
+                item.rect = QRectF(0, 0, cw, ch)
+                if item.rect.height() > 0:
+                    item.start_aspect_ratio = item.rect.width() / item.rect.height()
+                item.update()
+                item.changed.emit()
+                self.show_properties(item)
+                break
+
+    def reset_background_aspect_center(self):
+        for item in self.canvas.items():
+            if isinstance(item, ImageLayerItem) and item.is_background:
+                pw = item.pixmap.width()
+                ph = item.pixmap.height()
+                cw = self.canvas.canvas_width
+                ch = self.canvas.canvas_height
+                
+                ratio = pw / max(1.0, ph)
+                w = cw
+                h = w / ratio
+                if h < ch:
+                    h = ch
+                    w = h * ratio
+                
+                x = (cw - w) / 2.0
+                y = (ch - h) / 2.0
+                
+                item.setPos(x, y)
+                item.prepareGeometryChange()
+                item.rect = QRectF(0, 0, w, h)
+                item.start_aspect_ratio = ratio
+                item.update()
+                item.changed.emit()
+                self.show_properties(item)
+                break
 
     # Exporting
     def on_export_clicked(self):
@@ -669,6 +839,16 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
         # Refit canvas to view when window size changes
         QTimer.singleShot(100, self.fit_view)
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down):
+            focused_widget = QApplication.focusWidget()
+            if not isinstance(focused_widget, QSpinBox):
+                if hasattr(self, 'canvas') and self.canvas:
+                    self.canvas.keyPressEvent(event)
+                    if event.isAccepted():
+                        return
+        super().keyPressEvent(event)
 
 def main():
     app = QApplication(sys.argv)

@@ -220,3 +220,12 @@ __marimo__/
 # Virtual environments
 *.pyc
 deps_inventory.tsv
+
+# Cache
+.DS_Store
+.idea/
+
+# UV init generated files
+/pyproject.toml
+.python-version
+
