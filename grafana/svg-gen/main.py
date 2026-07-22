@@ -771,6 +771,9 @@ class MainWindow(QMainWindow):
             
         self.prop_effect_slider.setValue(item.effect_radius)
         
+        self.prop_effect_combo.blockSignals(False)
+        self.prop_effect_slider.blockSignals(False)
+        
         # All items (including background) can use image filter controls
         self.adj_blur_slider.setEnabled(True)
         self.adj_bright_slider.setEnabled(True)

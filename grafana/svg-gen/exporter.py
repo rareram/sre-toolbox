@@ -25,13 +25,15 @@ def export_to_svg(width, height, items, output_path):
     xml.append('<?xml version="1.0" encoding="UTF-8" standalone="no"?>')
     xml.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%">')
     
-    # Define SVG filters for drop-shadow and glow visibility effects
+    # Define SVG filters and canvas clip-path for exact 1:1 ratio preservation
     xml.append('  <defs>')
-    xml.append('    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">')
-    xml.append('      <feDropShadow dx="3" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.75"/>')
+    xml.append(f'    <clipPath id="canvas-clip"><rect x="0" y="0" width="{width}" height="{height}"/></clipPath>')
+    xml.append('    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">')
+    xml.append('      <feDropShadow dx="5" dy="5" stdDeviation="6" flood-color="#000000" flood-opacity="0.85"/>')
     xml.append('    </filter>')
-    xml.append('    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">')
-    xml.append('      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#00d2ff" flood-opacity="0.9"/>')
+    xml.append('    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">')
+    xml.append('      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#00f0ff" flood-opacity="1.0"/>')
+    xml.append('      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ffffff" flood-opacity="0.9"/>')
     xml.append('    </filter>')
     xml.append('  </defs>')
     
@@ -56,8 +58,8 @@ def export_to_svg(width, height, items, output_path):
             elif item.effect_type == "glow":
                 filter_attr = ' filter="url(#glow)"'
         
-        # Write image element with exact 1-to-1 canvas ratio preservation and visibility filter
-        xml.append(f'  <image href="{href}" x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="none"{filter_attr} />')
+        # Write image element with exact 1-to-1 canvas ratio preservation, canvas clipping, and visibility filter
+        xml.append(f'  <image href="{href}" x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="none" clip-path="url(#canvas-clip)"{filter_attr} />')
         
     xml.append('</svg>')
     

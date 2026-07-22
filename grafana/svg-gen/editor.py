@@ -150,26 +150,29 @@ class ImageLayerItem(QGraphicsObject):
         if self.effect_type == "shadow":
             if not self.shadow_effect:
                 self.shadow_effect = QGraphicsDropShadowEffect()
-            self.shadow_effect.setColor(QColor(0, 0, 0, 190))
-            self.shadow_effect.setBlurRadius(self.effect_radius)
-            self.shadow_effect.setOffset(3, 3)
+            self.shadow_effect.setColor(QColor(0, 0, 0, 230))
+            self.shadow_effect.setBlurRadius(self.effect_radius * 1.5)
+            self.shadow_effect.setOffset(5, 5)
             self.setGraphicsEffect(self.shadow_effect)
         elif self.effect_type == "glow":
             if not self.shadow_effect:
                 self.shadow_effect = QGraphicsDropShadowEffect()
-            self.shadow_effect.setColor(QColor(0, 210, 255, 220))
-            self.shadow_effect.setBlurRadius(self.effect_radius)
+            # Intense Neon Cyan glow (#00f0ff, 100% alpha)
+            self.shadow_effect.setColor(QColor(0, 240, 255, 255))
+            self.shadow_effect.setBlurRadius(self.effect_radius * 2.0)
             self.shadow_effect.setOffset(0, 0)
             self.setGraphicsEffect(self.shadow_effect)
         else:
             self.setGraphicsEffect(None)
             
+        self.prepareGeometryChange()
         self.update()
         self.changed.emit()
 
     def boundingRect(self):
-        # Pad bounding box to make space for handles and prevent rendering artifacts
-        return self.rect.adjusted(-10, -10, 10, 10)
+        # Expand bounding box to accommodate shadow and intense neon glow without clipping
+        pad = max(60, self.effect_radius * 2)
+        return self.rect.adjusted(-pad, -pad, pad, pad)
 
     def paint(self, painter, option, widget):
         # Draw the main image scaled to target rect
