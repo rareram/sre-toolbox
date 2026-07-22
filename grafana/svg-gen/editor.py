@@ -1,6 +1,8 @@
+import io
+from PIL import Image, ImageEnhance, ImageFilter
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal
-from PySide6.QtGui import QPen, QColor, QBrush, QCursor
-from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsScene
+from PySide6.QtGui import QPen, QColor, QBrush, QCursor, QPixmap
+from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsScene, QGraphicsDropShadowEffect
 
 class ImageLayerItem(QGraphicsObject):
     # Signal emitted when position or size of this layer changes
@@ -8,9 +10,12 @@ class ImageLayerItem(QGraphicsObject):
 
     def __init__(self, pixmap, filename, file_data, is_background=False, parent=None):
         super().__init__(parent)
+        self.original_pixmap = pixmap
         self.pixmap = pixmap
         self.filename = filename
         self.file_data = file_data
+        self.processed_file_data = file_data
+        self.processed_mime_type = None
         self.is_background = is_background
         
         self.rect = QRectF(0, 0, pixmap.width(), pixmap.height())
@@ -21,6 +26,18 @@ class ImageLayerItem(QGraphicsObject):
         self.start_aspect_ratio = pixmap.width() / max(1.0, pixmap.height())
         self.keep_aspect_ratio = True  # Default to keeping aspect ratio
         
+        # Visibility effect settings
+        self.effect_type = "none"  # "none", "shadow", "glow"
+        self.effect_radius = 15
+        self.shadow_effect = None
+        
+        # Image adjustment values
+        self.blur_val = 0        # 0 ~ 30
+        self.brightness_val = 0  # -100 ~ 100
+        self.contrast_val = 0    # -100 ~ 100
+        self.temp_val = 0        # -100 ~ 100
+        self._pil_base_image = None
+        
         # Configure flags for interactive manipulation
         self.setFlags(
             QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
@@ -28,6 +45,127 @@ class ImageLayerItem(QGraphicsObject):
             QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges
         )
         self.setAcceptHoverEvents(True)
+
+    def _get_base_image(self):
+        if self._pil_base_image is None:
+            try:
+                self._pil_base_image = Image.open(io.BytesIO(self.file_data)).convert("RGBA")
+            except Exception:
+                return None
+        return self._pil_base_image.copy()
+
+    def apply_image_adjustments(self, blur=None, brightness=None, contrast=None, temp=None):
+        if blur is not None:
+            self.blur_val = blur
+        if brightness is not None:
+            self.brightness_val = brightness
+        if contrast is not None:
+            self.contrast_val = contrast
+        if temp is not None:
+            self.temp_val = temp
+
+        # If all filter values are default, reset to original data
+        if self.blur_val == 0 and self.brightness_val == 0 and self.contrast_val == 0 and self.temp_val == 0:
+            self.processed_file_data = self.file_data
+            self.pixmap = self.original_pixmap
+            self.update()
+            self.changed.emit()
+            return
+
+        try:
+            img = self._get_base_image()
+            if img is None:
+                return
+
+            # 1. Brightness Adjustment
+            if self.brightness_val != 0:
+                factor = 1.0 + (self.brightness_val / 100.0)
+                img = ImageEnhance.Brightness(img).enhance(max(0.0, factor))
+
+            # 2. Contrast Adjustment
+            if self.contrast_val != 0:
+                factor = 1.0 + (self.contrast_val / 100.0)
+                img = ImageEnhance.Contrast(img).enhance(max(0.0, factor))
+
+            # 3. Temperature Adjustment (Warmth: Red/Yellow vs Cool: Blue/Cyan)
+            if self.temp_val != 0:
+                r, g, b, a = img.split()
+                t = self.temp_val / 100.0
+                if t > 0:  # Warm
+                    r = r.point(lambda p: min(255, int(p * (1.0 + t * 0.25))))
+                    b = b.point(lambda p: max(0, int(p * (1.0 - t * 0.25))))
+                else:      # Cool
+                    abs_t = abs(t)
+                    b = b.point(lambda p: min(255, int(p * (1.0 + abs_t * 0.25))))
+                    r = r.point(lambda p: max(0, int(p * (1.0 - abs_t * 0.25))))
+                img = Image.merge("RGBA", (r, g, b, a))
+
+            # 4. Blur Filter
+            if self.blur_val > 0:
+                img = img.filter(ImageFilter.GaussianBlur(radius=self.blur_val))
+
+            # Smart Compression based on Alpha Channel (Reduces size from 19MB -> 1.5MB)
+            buf = io.BytesIO()
+            has_alpha = False
+            if img.mode == "RGBA":
+                extrema = img.split()[-1].getextrema()
+                if extrema != (255, 255):  # Contains transparent pixels
+                    has_alpha = True
+
+            if has_alpha:
+                img.save(buf, format="PNG", compress_level=9, optimize=True)
+                self.processed_mime_type = "image/png"
+            else:
+                rgb_img = img.convert("RGB")
+                rgb_img.save(buf, format="JPEG", quality=90, optimize=True)
+                self.processed_mime_type = "image/jpeg"
+
+            self.processed_file_data = buf.getvalue()
+
+            new_pixmap = QPixmap()
+            new_pixmap.loadFromData(self.processed_file_data)
+            self.pixmap = new_pixmap
+            self.update()
+            self.changed.emit()
+        except Exception:
+            pass
+
+    def reset_image_adjustments(self):
+        self.blur_val = 0
+        self.brightness_val = 0
+        self.contrast_val = 0
+        self.temp_val = 0
+        self.processed_file_data = self.file_data
+        self.processed_mime_type = None
+        self.pixmap = self.original_pixmap
+        self.update()
+        self.changed.emit()
+
+    def apply_effect(self, effect_type=None, radius=None):
+        if effect_type is not None:
+            self.effect_type = effect_type
+        if radius is not None:
+            self.effect_radius = radius
+
+        if self.effect_type == "shadow":
+            if not self.shadow_effect:
+                self.shadow_effect = QGraphicsDropShadowEffect()
+            self.shadow_effect.setColor(QColor(0, 0, 0, 190))
+            self.shadow_effect.setBlurRadius(self.effect_radius)
+            self.shadow_effect.setOffset(3, 3)
+            self.setGraphicsEffect(self.shadow_effect)
+        elif self.effect_type == "glow":
+            if not self.shadow_effect:
+                self.shadow_effect = QGraphicsDropShadowEffect()
+            self.shadow_effect.setColor(QColor(0, 210, 255, 220))
+            self.shadow_effect.setBlurRadius(self.effect_radius)
+            self.shadow_effect.setOffset(0, 0)
+            self.setGraphicsEffect(self.shadow_effect)
+        else:
+            self.setGraphicsEffect(None)
+            
+        self.update()
+        self.changed.emit()
 
     def boundingRect(self):
         # Pad bounding box to make space for handles and prevent rendering artifacts
@@ -67,6 +205,9 @@ class ImageLayerItem(QGraphicsObject):
             'ml': QRectF(r.left() - half, r.center().y() - half, w, h),
         }
 
+    def clear_cache(self):
+        self._pil_base_image = None
+
     def mousePressEvent(self, event):
         pos = event.pos()
         handles = self.get_handle_rects()
@@ -76,8 +217,7 @@ class ImageLayerItem(QGraphicsObject):
                 self.start_pos = event.scenePos()
                 self.start_rect = QRectF(self.rect)
                 self.start_scene_pos = self.scenePos()
-                if self.start_rect.height() > 0:
-                    self.start_aspect_ratio = self.start_rect.width() / self.start_rect.height()
+                self.start_aspect_ratio = self.start_rect.width() / max(0.001, self.start_rect.height())
                 event.accept()
                 return
         super().mousePressEvent(event)

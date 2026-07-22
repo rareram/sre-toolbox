@@ -25,6 +25,16 @@ def export_to_svg(width, height, items, output_path):
     xml.append('<?xml version="1.0" encoding="UTF-8" standalone="no"?>')
     xml.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%">')
     
+    # Define SVG filters for drop-shadow and glow visibility effects
+    xml.append('  <defs>')
+    xml.append('    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">')
+    xml.append('      <feDropShadow dx="3" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.75"/>')
+    xml.append('    </filter>')
+    xml.append('    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">')
+    xml.append('      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#00d2ff" flood-opacity="0.9"/>')
+    xml.append('    </filter>')
+    xml.append('  </defs>')
+    
     for item in items:
         # Get coordinates relative to the canvas origin (0, 0)
         x = item.x()
@@ -32,12 +42,22 @@ def export_to_svg(width, height, items, output_path):
         w = item.rect.width()
         h = item.rect.height()
         
-        mime = get_mime_type(item.filename)
-        b64_data = base64.b64encode(item.file_data).decode('utf-8')
+        mime = getattr(item, 'processed_mime_type', None) or get_mime_type(item.filename)
+        raw_data = getattr(item, 'processed_file_data', item.file_data)
+        if not isinstance(raw_data, bytes):
+            raw_data = bytes(raw_data)
+        b64_data = base64.b64encode(raw_data).decode('utf-8')
         href = f"data:{mime};base64,{b64_data}"
         
-        # Write image element with exact 1-to-1 canvas ratio preservation
-        xml.append(f'  <image href="{href}" x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="none" />')
+        filter_attr = ""
+        if hasattr(item, 'effect_type'):
+            if item.effect_type == "shadow":
+                filter_attr = ' filter="url(#shadow)"'
+            elif item.effect_type == "glow":
+                filter_attr = ' filter="url(#glow)"'
+        
+        # Write image element with exact 1-to-1 canvas ratio preservation and visibility filter
+        xml.append(f'  <image href="{href}" x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="none"{filter_attr} />')
         
     xml.append('</svg>')
     

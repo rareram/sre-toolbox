@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QGridLayout, QLabel, QPushButton, QComboBox, QSpinBox, QListWidget,
     QListWidgetItem, QGraphicsView, QFileDialog, QFrame, QAbstractItemView,
-    QMessageBox, QGroupBox, QRadioButton, QToolTip, QCheckBox
+    QMessageBox, QGroupBox, QRadioButton, QToolTip, QCheckBox, QSlider
 )
 
 from editor import EditorCanvas, ImageLayerItem
@@ -119,6 +119,11 @@ class MainWindow(QMainWindow):
 
         self.selected_graphics_item = None
         self.block_property_updates = False
+        
+        # Debounce timer for smooth slider filtering
+        self.adj_timer = QTimer(self)
+        self.adj_timer.setSingleShot(True)
+        self.adj_timer.timeout.connect(self._do_apply_adjustments)
         
         self.setup_ui()
 
@@ -317,6 +322,20 @@ class MainWindow(QMainWindow):
         self.prop_keep_aspect.toggled.connect(self.on_keep_aspect_toggled)
         prop_layout.addWidget(self.prop_keep_aspect, 2, 0, 1, 4)
         
+        # Visibility Effect (Shadow / Glow)
+        prop_layout.addWidget(QLabel("효과:"), 3, 0)
+        self.prop_effect_combo = QComboBox()
+        self.prop_effect_combo.addItems(["없음 (None)", "그림자 (Shadow)", "네온 글로우 (Glow)"])
+        self.prop_effect_combo.currentIndexChanged.connect(self.on_effect_edited)
+        prop_layout.addWidget(self.prop_effect_combo, 3, 1, 1, 3)
+        
+        prop_layout.addWidget(QLabel("반경:"), 4, 0)
+        self.prop_effect_slider = QSlider(Qt.Orientation.Horizontal)
+        self.prop_effect_slider.setRange(5, 50)
+        self.prop_effect_slider.setValue(15)
+        self.prop_effect_slider.valueChanged.connect(self.on_effect_edited)
+        prop_layout.addWidget(self.prop_effect_slider, 4, 1, 1, 3)
+        
         right_layout.addWidget(prop_group)
         
         # Alignment helpers
@@ -356,6 +375,50 @@ class MainWindow(QMainWindow):
         align_layout.addWidget(self.align_b_btn, 1, 2)
         
         right_layout.addWidget(align_group)
+        
+        # Image Adjustments Group (Blur, Brightness, Contrast, Temperature)
+        adj_group = QGroupBox("이미지 보정 필터")
+        adj_layout = QGridLayout(adj_group)
+        
+        # 1. Blur Slider
+        adj_layout.addWidget(QLabel("블러:"), 0, 0)
+        self.adj_blur_slider = QSlider(Qt.Orientation.Horizontal)
+        self.adj_blur_slider.setRange(0, 30)
+        self.adj_blur_slider.setValue(0)
+        self.adj_blur_slider.valueChanged.connect(self.on_adjustment_changed)
+        adj_layout.addWidget(self.adj_blur_slider, 0, 1, 1, 3)
+        
+        # 2. Brightness Slider
+        adj_layout.addWidget(QLabel("밝기:"), 1, 0)
+        self.adj_bright_slider = QSlider(Qt.Orientation.Horizontal)
+        self.adj_bright_slider.setRange(-100, 100)
+        self.adj_bright_slider.setValue(0)
+        self.adj_bright_slider.valueChanged.connect(self.on_adjustment_changed)
+        adj_layout.addWidget(self.adj_bright_slider, 1, 1, 1, 3)
+        
+        # 3. Contrast Slider
+        adj_layout.addWidget(QLabel("명암:"), 2, 0)
+        self.adj_contrast_slider = QSlider(Qt.Orientation.Horizontal)
+        self.adj_contrast_slider.setRange(-100, 100)
+        self.adj_contrast_slider.setValue(0)
+        self.adj_contrast_slider.valueChanged.connect(self.on_adjustment_changed)
+        adj_layout.addWidget(self.adj_contrast_slider, 2, 1, 1, 3)
+        
+        # 4. Temperature Slider
+        adj_layout.addWidget(QLabel("색온도:"), 3, 0)
+        self.adj_temp_slider = QSlider(Qt.Orientation.Horizontal)
+        self.adj_temp_slider.setRange(-100, 100)
+        self.adj_temp_slider.setValue(0)
+        self.adj_temp_slider.valueChanged.connect(self.on_adjustment_changed)
+        adj_layout.addWidget(self.adj_temp_slider, 3, 1, 1, 3)
+        
+        # Reset Adjustments Button
+        self.adj_reset_btn = QPushButton("보정 초기화")
+        self.adj_reset_btn.setObjectName("secondary_btn")
+        self.adj_reset_btn.clicked.connect(self.on_adjustment_reset)
+        adj_layout.addWidget(self.adj_reset_btn, 4, 0, 1, 4)
+        
+        right_layout.addWidget(adj_group)
         
         # Conversion mode (Base64 vs Vectorizing disabled)
         conv_group = QGroupBox("SVG 변환 필터")
@@ -527,7 +590,9 @@ class MainWindow(QMainWindow):
             
             # In our list, background should be placed at the very bottom
             self.layer_list.addItem(list_item)
+            self.layer_list.setCurrentItem(list_item)
             self.update_layer_z_indices()
+            self.show_properties(bg_item)
             
             bg_item.changed.connect(self.update_properties_from_item)
             
@@ -592,7 +657,12 @@ class MainWindow(QMainWindow):
         self.layer_list.takeItem(self.layer_list.row(list_item))
         
         self.update_layer_z_indices()
-        self.show_properties(None)
+        
+        # Automatically select the top-most remaining layer if any
+        if self.layer_list.count() > 0:
+            self.layer_list.setCurrentRow(0)
+        else:
+            self.show_properties(None)
 
     def remove_from_list(self, graphics_item):
         for row in range(self.layer_list.count()):
@@ -655,6 +725,14 @@ class MainWindow(QMainWindow):
             self.prop_y.setEnabled(False)
             self.prop_w.setEnabled(False)
             self.prop_h.setEnabled(False)
+            self.prop_keep_aspect.setEnabled(False)
+            self.prop_effect_combo.setEnabled(False)
+            self.prop_effect_slider.setEnabled(False)
+            self.adj_blur_slider.setEnabled(False)
+            self.adj_bright_slider.setEnabled(False)
+            self.adj_contrast_slider.setEnabled(False)
+            self.adj_temp_slider.setEnabled(False)
+            self.adj_reset_btn.setEnabled(False)
             self.prop_x.setValue(0)
             self.prop_y.setValue(0)
             self.prop_w.setValue(0)
@@ -663,13 +741,14 @@ class MainWindow(QMainWindow):
             
         self.block_property_updates = True
         
-        # Background layer is locked
-        is_bg = item.is_background
-        self.prop_x.setEnabled(not is_bg)
-        self.prop_y.setEnabled(not is_bg)
-        self.prop_w.setEnabled(not is_bg)
-        self.prop_h.setEnabled(not is_bg)
-        self.prop_keep_aspect.setEnabled(not is_bg)
+        # All layers (including background) can be manipulated
+        self.prop_x.setEnabled(True)
+        self.prop_y.setEnabled(True)
+        self.prop_w.setEnabled(True)
+        self.prop_h.setEnabled(True)
+        self.prop_keep_aspect.setEnabled(True)
+        self.prop_effect_combo.setEnabled(True)
+        self.prop_effect_slider.setEnabled(True)
         
         self.prop_x.setValue(int(item.x()))
         self.prop_y.setValue(int(item.y()))
@@ -680,7 +759,72 @@ class MainWindow(QMainWindow):
         self.prop_keep_aspect.setChecked(item.keep_aspect_ratio)
         self.prop_keep_aspect.blockSignals(False)
         
+        self.prop_effect_combo.blockSignals(True)
+        self.prop_effect_slider.blockSignals(True)
+        
+        if item.effect_type == "shadow":
+            self.prop_effect_combo.setCurrentIndex(1)
+        elif item.effect_type == "glow":
+            self.prop_effect_combo.setCurrentIndex(2)
+        else:
+            self.prop_effect_combo.setCurrentIndex(0)
+            
+        self.prop_effect_slider.setValue(item.effect_radius)
+        
+        # All items (including background) can use image filter controls
+        self.adj_blur_slider.setEnabled(True)
+        self.adj_bright_slider.setEnabled(True)
+        self.adj_contrast_slider.setEnabled(True)
+        self.adj_temp_slider.setEnabled(True)
+        self.adj_reset_btn.setEnabled(True)
+        
+        self.adj_blur_slider.blockSignals(True)
+        self.adj_bright_slider.blockSignals(True)
+        self.adj_contrast_slider.blockSignals(True)
+        self.adj_temp_slider.blockSignals(True)
+        
+        self.adj_blur_slider.setValue(item.blur_val)
+        self.adj_bright_slider.setValue(item.brightness_val)
+        self.adj_contrast_slider.setValue(item.contrast_val)
+        self.adj_temp_slider.setValue(item.temp_val)
+        
+        self.adj_blur_slider.blockSignals(False)
+        self.adj_bright_slider.blockSignals(False)
+        self.adj_contrast_slider.blockSignals(False)
+        self.adj_temp_slider.blockSignals(False)
+        
         self.block_property_updates = False
+
+    def on_effect_edited(self):
+        if not self.selected_graphics_item or self.block_property_updates:
+            return
+        idx = self.prop_effect_combo.currentIndex()
+        eff_map = {0: "none", 1: "shadow", 2: "glow"}
+        eff_type = eff_map.get(idx, "none")
+        radius = self.prop_effect_slider.value()
+        
+        self.selected_graphics_item.apply_effect(eff_type, radius)
+
+    def on_adjustment_changed(self):
+        if not self.selected_graphics_item or self.block_property_updates:
+            return
+        self.adj_timer.start(50)
+
+    def _do_apply_adjustments(self):
+        if not self.selected_graphics_item:
+            return
+        blur = self.adj_blur_slider.value()
+        bright = self.adj_bright_slider.value()
+        contrast = self.adj_contrast_slider.value()
+        temp = self.adj_temp_slider.value()
+        
+        self.selected_graphics_item.apply_image_adjustments(blur, bright, contrast, temp)
+
+    def on_adjustment_reset(self):
+        if not self.selected_graphics_item:
+            return
+        self.selected_graphics_item.reset_image_adjustments()
+        self.show_properties(self.selected_graphics_item)
 
     def update_properties_from_item(self):
         if self.selected_graphics_item:
