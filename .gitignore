@@ -229,3 +229,12 @@ deps_inventory.tsv
 /pyproject.toml
 .python-version
 
+# Node.js / Tabby Plugin
+node_modules/
+*.cast
+.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+

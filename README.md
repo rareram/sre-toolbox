@@ -41,6 +41,10 @@
 - **`install_helper`**: Linux 환경(Server, Node Exporter, Process Exporter) 설치 및 유지보수 스크립트
 - **`win_exp_inst`**: Windows Exporter GUI 기반 설치 도구
 
+### 8. Tabby (`tabby/`)
+Tabby 플러그인 - 터미널 세션 관리 및 작업 기록 보조 목적
+- **`asciinema-helper` (`tabby-asciinema-helper`)**: 원격 서버 설치 없이 Tabby 터미널 세션을 `.cast` (v2) 파일로 녹화 및 CLI 재생을 지원하는 플러그인
+
 ---
 
 > 상세 실행 방법은 각 디렉터리 내부 `README.md` 참고.
