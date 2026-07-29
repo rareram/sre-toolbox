@@ -1,51 +1,51 @@
 # SRE Toolbox
 
-인프라 및 어플리케이션 운영 시 발생하는 관리 사각지대 해소와 점검 자동화를 위한 SRE 툴킷 모음.
+서버 관리, 장애 응대, 모니터링 작업을 쉽게 만들어주는 자동화 도구 모음입니다.
 
 ---
 
-## Components & Purpose
+## 🛠️ 언제 어떤 도구를 쓰나요?
 
-### 1. GitLab (`gitlab/`)
-방치된 저장소 파악 및 관리 주체 추적 목적
-- **`gitlab-deps-scan`**: 저장소별 라이브러리 의존성 및 EOS(End of Support) 버전 스캔
-- **`getinfo`**: 비표준 커밋 사용자명(이메일, 사번 등)을 인사DB 규격으로 매핑하여 실제 작성자 추적
+### 1. GitLab 도구 (`gitlab/`)
+- **`gitlab-deps-scan`**: 내 프로젝트가 쓰고 있는 라이브러리가 너무 오래되어 지원이 종료(EOS)되었는지 한눈에 찾아볼 때 씁니다.
+- **`getinfo`**: 커밋 기록에 사번이나 이메일만 적혀 있어서 실제 커밋을 작성한 직원이 누구인지 찾기 어려울 때 씁니다.
 
-### 2. Azure (`azure/`)
-- **`security_scan`**: 클라우드 자원 보안 설정 누락 및 접근 통제 항목 일괄 점검
+### 2. Azure 도구 (`azure/`)
+- **`security_scan`**: 클라우드(Azure) 방화벽이나 보안 설정이 누락된 자원이 있는지 자동으로 점검할 때 씁니다.
 
-### 3. Grafana (`grafana/`)
-대시보드 파편화, 설명 누락, 권한 관리 문제 해결 목적
-- **`desc_editor`**: 대시보드 패널 Description 일괄 편집 및 가시성 확보
-- **`dashboard_export`**: 대시보드 설정 일괄 백업 및 이관
-- **`get_userinfo`**: 팀/사용자별 대시보드 및 폴더 접근 권한 감사
-- **`grafana2teams`**: Grafana 패널 화면 캡처 후 Teams 채널 전파 브라우저 확장 프로그램
-- **`custom_login`**: 로그인 페이지 커스터마이징
-- **`svg-gen`**: SVG 생성 및 Grafana Login image 생성기
+### 3. Grafana 도구 (`grafana/`)
+- **`desc_editor`**: 대시보드 그래프 패널에 설명(Description) 문구를 한 번에 입력하고 싶을 때 씁니다.
+- **`dashboard_export`**: 대시보드 설정을 파일로 백업하거나 다른 서버로 옮길 때 씁니다.
+- **`get_userinfo`**: 누가 어떤 대시보드와 폴더를 볼 수 있는지 권한 목록을 조회할 때 씁니다.
+- **`grafana2teams`**: 그래프 화면을 캡처해서 잔디/MS Teams 채널로 바로 공유하고 싶을 때 씁니다.
+- **`custom_login` / `svg-gen`**: 로그인 화면 로고나 배경 이미지를 회사 전용 디자인으로 바꿀 때 씁니다.
 
-### 4. Jira (`jira/`)
-수동 티켓 처리 절차 최소화 및 운영 데이터 수집 목적
-- **`01_issues_export` / `02_issues_status`**: 운영 이슈 상태 변경 이력 수집 및 현황 분석
-- **`03_playwright_scraper`**: Playwright 기반 이슈 데이터 자동 수집
+### 4. Jira 도구 (`jira/`)
+- **`01_issues_export` / `02_issues_status`**: Jira 티켓들의 상태 변화 이력을 한꺼번에 추출해서 현황 분석할 때 씁니다.
+- **`03_playwright_scraper`**: 화면에서 수동으로 복사하기 힘든 Jira 이슈 데이터를 자동으로 긁어올 때 씁니다.
 
-### 5. Linux (`linux/`)
-대규모 인프라 수동 점검 공수 절감 목적
-- **`syschk2xls`**: Linux 점검 결과 데이터 엑셀 보고서 자동 가공
-- **`service_chk`**: 주요 데몬 및 서비스 프로세스 상태 점검
+### 5. Linux 도구 (`linux/`)
+- **`syschk2xls`**: 서버 점검 결과를 엑셀 보고서 형태로 예쁘게 정리해 줄 때 씁니다.
+- **`service_chk`**: 주요 프로세스나 데몬이 죽지 않고 잘 켜져 있는지 확인할 때 씁니다.
 
-### 6. MS Teams (`ms-teams/`)
-- **`incident-comm-bot`**: 장애 상황 전파 및 타임라인 소통 지원 봇
+### 6. 장애 대응 봇 (`bots/`)
+- **`incident-comm-bot`**: 서버에 장애가 터졌을 때, 상황을 입력하면 개발팀/팀장님/고객용보고서와 조치 순서(타임라인)를 자동으로 맞춰서 작성해 줄 때 씁니다.
 
-### 7. Prometheus (`prometheus/`)
-서버 추가 시 에이전트 반복 설치 자동화 목적
-- **`install_helper`**: Linux 환경(Server, Node Exporter, Process Exporter) 설치 및 유지보수 스크립트
-- **`win_exp_inst`**: Windows Exporter GUI 기반 설치 도구
+### 7. Prometheus 모니터링 (`prometheus/`)
+- **`install_helper/*`**: 리눅스 서버에 프로메테우스 모니터링 에이전트를 설치할 때 씁니다.
+- **`win_exp_inst`**: 윈도우 서버 여러 대에 모니터링 프로그램(windows_exporter)을 마우스 클릭 몇 번으로 쉽게 설치/제거할 때 씁니다.
 
-### 8. Tabby (`tabby/`)
-Tabby 플러그인 - 터미널 세션 관리 및 작업 기록 보조 목적
-- **`asciinema-helper` (`tabby-asciinema-helper`)**: 원격 서버 설치 없이 Tabby 터미널 세션을 `.cast` (v2) 파일로 녹화 및 CLI 재생을 지원하는 플러그인
+### 8. Tabby 터미널 플러그인 (`tabby/`)
+- **`asciinema-helper`**: 서버 작업 과정을 영상처럼 화면 그대로 녹화해서 팀원에게 공유하거나, 민감한 비밀번호를 가리고 싶을 때 씁니다.
 
 ---
 
-> 상세 실행 방법은 각 디렉터리 내부 `README.md` 참고.
+## 🛡️ 의존성 라이브러리 보안 패치 현황
 
+안전한 사용을 위해 주요 라이브러리의 보안 버그를 최신 패치 버전으로 업데이트해 두었습니다:
+- **`urllib3` (2.7.0)**: 악의적인 압축 파일로 인한 서버 멈춤(Decompression Bomb) 및 주소 이동 시 비밀번호 유출 방지
+- **`setuptools` (83.0.0)**: 파일 경로 조작으로 임시 파일이 덮어씌워지는 현상 방지
+- **`requests` (2.33.0)**: 접속 주소 파싱 오류로 비밀번호 파일(.netrc)이 외부로 새어나가는 버그 수정
+- **`idna` (3.15)**: 특수 문자 변환 시 서버 CPU가 100%로 솟구치는 현상 방지
+- **`python-dotenv` (1.2.2)**: 환경 변수(.env) 설정 변경 시 다른 중요 파일이 실수로 바뀌는 현상 방지
+- **`flask` (3.1.3)**: 로그아웃 후 이전 사용자 정보가 웹 화면에 남는 현상 방지

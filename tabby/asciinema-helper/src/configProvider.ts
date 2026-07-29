@@ -13,7 +13,11 @@ export class AsciinemaConfigProvider extends ConfigProvider {
         },
         pluginConfig: {
             asciinema: {
-                iconTheme: 'red',
+                formatVersion: 'v2',
+                filePrefix: 'asciinema',
+                filenamePattern: '{host}_{date}',
+                idleTimeLimit: 2.0,
+                maskingKeywords: '',
                 savePath: '',
             },
         },

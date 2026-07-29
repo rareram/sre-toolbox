@@ -5,8 +5,9 @@ import { Subject, Subscription } from 'rxjs'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+import { execFile } from 'child_process'
 import { detectAsciinemaCLI } from './cliDetector'
-import { registerPluginTranslations } from '../i18n'
+import { registerPluginTranslations, translations } from '../i18n'
 
 export interface AsciinemaHeader {
     version: number
@@ -15,6 +16,7 @@ export interface AsciinemaHeader {
     timestamp: number
     title?: string
     env?: Record<string, string>
+    idle_time_limit?: number
 }
 
 export interface RecordingSession {
@@ -40,14 +42,43 @@ export class AsciinemaRecorderService {
         private translate: TranslateService,
     ) {
         registerPluginTranslations(this.translate)
+        this.app.tabsChanged$.subscribe(() => {
+            for (const [tab] of Array.from(this.activeRecordings.entries())) {
+                if (!this.app.tabs.includes(tab as any)) {
+                    this.stopRecording(tab)
+                }
+            }
+        })
     }
 
     get saveDir (): string {
         const configured = this.config.store.pluginConfig?.['asciinema']?.savePath
-        if (configured && configured.trim()) {
-            return configured.trim()
-        }
-        return path.join(os.homedir(), 'Downloads', 'AsciinemaRecordings')
+        return configured && configured.trim() ? configured : path.join(os.homedir(), 'Downloads', 'AsciinemaRecordings')
+    }
+
+    get formatVersion (): string {
+        return this.config.store.pluginConfig?.['asciinema']?.formatVersion || 'v2'
+    }
+
+    get filePrefix (): string {
+        return this.config.store.pluginConfig?.['asciinema']?.filePrefix || 'asciinema'
+    }
+
+    get filenamePattern (): string {
+        return this.config.store.pluginConfig?.['asciinema']?.filenamePattern || '{host}_{date}'
+    }
+
+    get recordingTitle (): string {
+        return this.config.store.pluginConfig?.['asciinema']?.recordingTitle || 'Tabby Session Recording'
+    }
+
+    get idleTimeLimit (): number {
+        const val = Number(this.config.store.pluginConfig?.['asciinema']?.idleTimeLimit)
+        return isNaN(val) ? 2.0 : val
+    }
+
+    get maskingKeywords (): string {
+        return this.config.store.pluginConfig?.['asciinema']?.maskingKeywords || ''
     }
 
     isRecording (tab: BaseTerminalTabComponent<any>): boolean {
@@ -95,15 +126,22 @@ export class AsciinemaRecorderService {
         const rows = tab.size?.rows || 24
         const now = Date.now() / 1000
 
+        const verNumber = this.formatVersion === 'v3' ? 3 : 2
+        const headerTitle = this.recordingTitle && this.recordingTitle.trim() ? this.recordingTitle.trim() : (tab.title || 'Tabby Session Recording')
+
         const header: AsciinemaHeader = {
-            version: 2,
+            version: verNumber,
             width: columns,
             height: rows,
             timestamp: Math.floor(now),
-            title: tab.title || 'Tabby Session Recording',
+            title: headerTitle,
             env: {
                 TERM: 'xterm-256color',
             },
+        }
+
+        if (this.idleTimeLimit > 0) {
+            header.idle_time_limit = this.idleTimeLimit
         }
 
         const session: RecordingSession = {
@@ -153,16 +191,58 @@ export class AsciinemaRecorderService {
                 fs.mkdirSync(outputDir, { recursive: true })
             }
 
-            const dateStr = new Date().toISOString().replace(/[:.]/g, '-')
-            const filename = `asciinema-${dateStr}.cast`
-            const filePath = path.join(outputDir, filename)
+            const rawHost = (tab as any)?.profile?.options?.host || tab.title || 'local'
+            const hostSanitized = rawHost.replace(/[/\\?%*:|"<> ]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'session'
+            const dateStr = new Date().toISOString().replace(/T/, '-').replace(/[:.]/g, '').slice(0, 15)
+            const prefixStr = (this.filePrefix && this.filePrefix.trim() ? this.filePrefix.trim() : 'asciinema').replace(/[/\\?%*:|"<> ]/g, '-')
+            const titleStr = (this.recordingTitle && this.recordingTitle.trim() ? this.recordingTitle.trim() : 'session').replace(/[/\\?%*:|"<> ]/g, '-')
+
+            let pattern = this.filenamePattern || '{host}_{date}'
+            pattern = pattern
+                .replace(/\{host\}|\%host\%/g, hostSanitized)
+                .replace(/\{date\}|\%date\%/g, dateStr)
+                .replace(/\{prefix\}|\%prefix\%/g, prefixStr)
+                .replace(/\{title\}|\%title\%/g, titleStr)
+                .replace(/[/\\?%*:|"<> ]/g, '-')
+                .replace(/-+/g, '-')
+
+            let baseFilename = pattern.replace(/\.cast$/i, '')
+            if (!baseFilename || baseFilename === '-') {
+                baseFilename = `${prefixStr}_${dateStr}`
+            }
+
+            let filename = `${baseFilename}.cast`
+            let filePath = path.join(outputDir, filename)
+
+            // 중복 방지 방어벽 (Filename Collision Shield)
+            let counter = 1
+            while (fs.existsSync(filePath)) {
+                filename = `${baseFilename}_${counter}.cast`
+                filePath = path.join(outputDir, filename)
+                counter++
+            }
 
             const lines: string[] = []
             lines.push(JSON.stringify(session.header))
 
+            // 마스킹 키워드 준비
+            const keywords = this.maskingKeywords
+                .split(',')
+                .map(k => k.trim())
+                .filter(k => k.length > 0)
+
             for (const event of session.events) {
                 const time = Math.round(event[0] * 10000) / 10000
-                lines.push(JSON.stringify([time, event[1], event[2]]))
+                let text = event[2]
+                if (keywords.length > 0 && event[1] === 'o') {
+                    for (const kw of keywords) {
+                        if (kw) {
+                            const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                            text = text.replace(new RegExp(escaped, 'g'), '***')
+                        }
+                    }
+                }
+                lines.push(JSON.stringify([time, event[1], text]))
             }
 
             fs.writeFileSync(filePath, lines.join('\n') + '\n', 'utf8')
@@ -193,5 +273,27 @@ export class AsciinemaRecorderService {
         } catch (err: any) {
             this.notifications.error(this.translate.instant('Save Failed'), err?.message || String(err))
         }
+    }
+
+    uploadToAsciinema(filePath: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (!fs.existsSync(filePath)) {
+                reject(new Error('File not found: ' + filePath))
+                return
+            }
+
+            execFile('asciinema', ['upload', filePath], (err, stdout, stderr) => {
+                const combined = (stdout || '') + '\n' + (stderr || '')
+                const urlMatch = combined.match(/https:\/\/asciinema\.org\/a\/[a-zA-Z0-9]+/)
+
+                if (urlMatch) {
+                    resolve(urlMatch[0])
+                } else if (err) {
+                    reject(new Error(err.message || combined.trim()))
+                } else {
+                    resolve(combined.trim())
+                }
+            })
+        })
     }
 }

@@ -1,8 +1,9 @@
 {
   "name": "tabby-asciinema-helper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Asciinema terminal session recorder helper plugin for Tabby",
   "author": "YangHeeJong",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rareram/sre-toolbox.git",
@@ -17,8 +18,13 @@
     "recorder"
   ],
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "webpack --mode production",
+    "prepublishOnly": "npm run build",
     "deploy": "npm run build && rm -rf \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-asciinema-helper\" && mkdir -p \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-asciinema-helper\" && cp -r dist package.json README.md \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-asciinema-helper/\"",
     "watch": "webpack --mode development --watch"
   },
@@ -28,7 +34,6 @@
     "@angular/core": "^17.3.5",
     "@angular/forms": "^17.3.5",
     "@types/node": "^20.12.7",
-    "raw-loader": "^4.0.2",
     "rxjs": "^7.8.1",
     "tabby-core": "1.0.197-nightly.1",
     "tabby-settings": "1.0.197-nightly.1",
@@ -39,9 +44,6 @@
     "webpack-cli": "^5.1.4"
   },
   "peerDependencies": {
-    "@angular/common": "^17.3.5",
-    "@angular/core": "^17.3.5",
-    "rxjs": "^7.8.1",
     "tabby-core": "*",
     "tabby-settings": "*",
     "tabby-terminal": "*"

@@ -1,4 +1,4 @@
-import { exec } from 'child_process'
+import { execFile } from 'child_process'
 import * as os from 'os'
 
 export interface CLIInfo {
@@ -20,17 +20,17 @@ export function detectAsciinemaCLI (): Promise<CLIInfo> {
         guide = 'brew install asciinema'
     } else if (platform === 'linux') {
         platformName = 'Linux'
-        guide = 'sudo apt install asciinema  (또는 pip install asciinema)'
+        guide = 'sudo apt install asciinema (또는 pip install asciinema)'
     } else if (platform === 'win32') {
         platformName = 'Windows'
-        guide = 'pip install asciinema  (또는 WSL 환경 설치)'
+        guide = 'pip install asciinema (또는 WSL 환경 설치)'
     } else {
         platformName = platform
         guide = 'pip install asciinema'
     }
 
     return new Promise((resolve) => {
-        exec('asciinema --version', (err, stdout) => {
+        execFile('asciinema', ['--version'], (err, stdout) => {
             if (!err && stdout && stdout.trim()) {
                 resolve({
                     installed: true,

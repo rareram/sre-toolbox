@@ -4,20 +4,8 @@ import { BaseTerminalTabComponent } from 'tabby-terminal'
 import { AsciinemaRecorderService } from './services/recorder.service'
 import { registerPluginTranslations } from './i18n'
 
-const icons = {
-    red: {
-        record: require('./icons/record-red.svg'),
-        stop: require('./icons/stop-red.svg'),
-    },
-    neon: {
-        record: require('./icons/record-neon.svg'),
-        stop: require('./icons/stop-neon.svg'),
-    },
-    camera: {
-        record: require('./icons/record-camera.svg'),
-        stop: require('./icons/stop-camera.svg'),
-    },
-}
+const iconRecord = require('./icons/record.svg')
+const iconStop = require('./icons/stop.svg')
 
 function resolveIcon(iconRaw: any): string {
     return typeof iconRaw === 'string' ? iconRaw : (iconRaw.default || iconRaw)
@@ -66,13 +54,8 @@ export class AsciinemaButtonProvider extends ToolbarButtonProvider {
         this.translate.onLangChange.subscribe(() => this.updateButtonState())
     }
 
-    private get currentTheme (): 'red' | 'neon' | 'camera' {
-        return this.config.store.pluginConfig?.['asciinema']?.iconTheme || 'red'
-    }
-
     private getIcon (isRecording: boolean): string {
-        const themeSet = (icons as any)[this.currentTheme] || icons.red
-        return resolveIcon(isRecording ? themeSet.stop : themeSet.record)
+        return resolveIcon(isRecording ? iconStop : iconRecord)
     }
 
     private getTerminalTab (tab: any = this.app.activeTab): BaseTerminalTabComponent<any> | null {

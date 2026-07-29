@@ -7,7 +7,7 @@ import { registerPluginTranslations } from './i18n'
 @Injectable()
 export class AsciinemaSettingsTabProvider extends SettingsTabProvider {
     id = 'asciinema'
-    icon = 'video'
+    icon = 'play'
     title = ''
     weight = 10
 
