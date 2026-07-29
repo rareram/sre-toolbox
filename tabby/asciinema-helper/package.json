@@ -29,9 +29,9 @@
     "watch": "webpack --mode development --watch"
   },
   "devDependencies": {
-    "@angular/common": "^17.3.5",
-    "@angular/compiler": "^17.3.5",
-    "@angular/core": "^17.3.5",
+    "@angular/common": "^20.3.25",
+    "@angular/compiler": "^20.3.25",
+    "@angular/core": "^20.3.25",
     "@angular/forms": "^17.3.5",
     "@types/node": "^20.12.7",
     "rxjs": "^7.8.1",
