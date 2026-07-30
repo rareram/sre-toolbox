@@ -47,5 +47,8 @@
     "tabby-core": "*",
     "tabby-settings": "*",
     "tabby-terminal": "*"
+  },
+  "overrides": {
+    "@babel/core": "^7.29.6"
   }
 }
