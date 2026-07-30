@@ -18,7 +18,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(current_dir, ".env"))
 
 # 설정
-JIRA_URL = os.getenv("JIRA_URL", "https://lab.idatabank.com/jira")
+JIRA_URL = os.getenv("JIRA_URL", "https://your-domain.atlassian.net")
 JIRA_USERNAME = os.getenv("JIRA_USERNAME")
 JIRA_PASSWORD = os.getenv("JIRA_PASSWORD")
 

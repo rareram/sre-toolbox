@@ -1,127 +1,84 @@
-# Grafana 대시보드 Export/Import 스크립트
+# Grafana 대시보드 백업 및 복구 유틸리티 (`dashboard_export`)
 
-```
-Grafana 대시보드 전체 추출 스크립트
-- 모든 대시보드를 JSON 형태로 추출
-- UID 기반 파일명으로 저장
-- 폴더 구조 정보 포함
-- Pagination 지원으로 모든 대시보드 추출
-- .env 파일로 설정 관리
+Grafana REST API 또는 Grafana SQLite DB 파일에서 대시보드를 JSON 형태로 일괄 추출(Export)하고, UID 보존 및 버전 관리를 지원하며 업로드(Import)하는 유틸리티 모음입니다.
 
-Grafana 대시보드 업로드 스크립트
-- JSON 파일을 Grafana에 업로드
-- UID 보존 확인
-- 백업 및 버전 관리
-- .env 파일로 설정 관리
-```
+---
 
-## 파일 구성
-- `export_all_dashboards.py`: 모든 대시보드를 JSON으로 추출
-- `import_dashboard.py`: JSON 파일을 Grafana에 업로드
-- `README.md`: 사용법 안내
+## 주요 구성 파일
 
-## 설정 방법
+- `export_all_dashboards.py`: Grafana REST API 기반 전체 대시보드 JSON 백업 (Pagination 및 폴더 구조 유지)
+- `import_dashboard.py`: JSON 대시보드 파일 업로드/복구 (UID 보존 및 백업 기능)
+- `export_dashboard_via_sqlite.py`: Grafana SQLite DB 파일(`grafana.db`)에서 대시보드 직접 추출
+- `.env.example`: Grafana API 접속 정보 환경 변수 템플릿
 
-### 1. 필요한 패키지 설치
+---
+
+## 환경 설정 및 사전 준비
+
+### 1. 의존성 설치
 ```bash
-pip install requests
+pip install requests python-dotenv
 ```
 
-### 2. Grafana API 토큰 생성
-1. Grafana 웹 UI에 Admin 권한으로 로그인
-2. `Administration > Users and access > Service accounts` 메뉴 이동
-3. `Create service account` 클릭
-4. 이름 입력 (예: "Dashboard Manager")
-5. Role을 `Admin`으로 설정
-6. `Create` 후 `Add service account token` 클릭
-7. 생성된 토큰 복사
+### 2. Grafana API 서비스 계정(Service Account) 생성
+1. Grafana 웹 UI 접속 (`Administration` > `Users and access` > `Service accounts`)
+2. `Create service account` 클릭 (Role: `Admin` 지정)
+3. `Add service account token`을 클릭하여 API 토큰 생성 및 복사
 
-### 3. 스크립트 설정 수정
-각 스크립트 파일의 상단 설정 부분을 수정:
+### 3. 환경 변수 설정
+`.env.example`을 복사하여 `.env` 생성 후 접속 정보를 설정합니다.
 
-```python
-# export_all_dashboards.py와 import_dashboard.py 모두 수정
-GRAFANA_URL = "http://your-grafana-url:3000"  # 실제 Grafana URL
-GRAFANA_TOKEN = "your-admin-api-token-here"   # 위에서 생성한 토큰
+```bash
+cp .env.example .env
 ```
+
+`.env` 설정 예시:
+```ini
+GRAFANA_URL=http://your-grafana-server:3000
+GRAFANA_TOKEN=your-admin-api-token-here
+```
+
+---
 
 ## 사용법
 
-### 1. 모든 대시보드 추출
+### 1. Grafana API를 통한 전체 대시보드 추출
 ```bash
-python3 export_all_dashboards.py
+python export_all_dashboards.py
 ```
+- **결과물**: `grafana_export_YYYYMMDD_HHMMSS/` 디렉토리에 폴더별로 JSON 파일 저장
+- **파일명 형식**: `{UID}_{제목}_v{버전}.json`
 
-**출력 결과:**
-- `grafana_export_YYYYMMDD_HHMMSS/` 디렉토리 생성
-- `folders/` 하위에 폴더별로 JSON 파일 저장
-- 파일명 형식: `{UID}_{제목}_v{버전}.json`
+### 2. SQLite DB 파일에서 직접 추출
+API 접근이 불가능하거나 서버 로컬 DB 파일(`grafana.db`)을 다룰 때 사용합니다.
 
-### 2. 개별 대시보드 업로드
 ```bash
-# 기본 업로드 (백업 생성)
-python3 import_dashboard.py path/to/dashboard.json
-
-# 백업 없이 업로드
-python3 import_dashboard.py path/to/dashboard.json --no-backup
+# 동일 경로에 grafana.db 위치 후 실행
+python export_dashboard_via_sqlite.py
 ```
+- **결과물**: `dashboards_from_db_export/` 디렉토리에 폴더별 JSON 파일 추출
 
-## 테스트 시나리오
-
-### UID 보존 및 Revision 확인
-1. 대시보드 추출
-2. JSON에서 패널 Description 수정
-3. 업로드 후 UID와 버전 변화 확인
-
-**예시 테스트:**
+### 3. 대시보드 업로드 및 복구
 ```bash
-# 1. 전체 추출
-python3 export_all_dashboards.py
+# 기본 업로드 (자동 백업 수행)
+python import_dashboard.py path/to/dashboard.json
 
-# 2. 특정 대시보드 JSON 편집
-# 예: panels[0].description 수정
-
-# 3. 업로드 및 확인
-python3 import_dashboard.py grafana_export_*/folders/General/db695651-d5b0-4640-a000-b61fec2833bf_New_dashboard_v5.json
+# 백업 없이 즉시 업로드
+python import_dashboard.py path/to/dashboard.json --no-backup
 ```
 
-## 주요 확인 포인트
+---
 
-### ✅ UID 보존 확인
-업로드 시 다음과 같이 출력됩니다:
-```
-   - UID 보존: True ✅
-```
+## 주요 검증 포인트 및 유의사항
 
-### ✅ Revision 추적  
-버전 변화를 다음과 같이 확인할 수 있습니다:
-```
-   - 새 버전: 6
-   - 원본 버전: 5
-   - 버전 변화: 5 → 6
-```
+1. **UID 보존**:
+   - 대시보드의 UID가 변경되면 연결된 Grafana Alert(알람) 및 외부 링크가 유실되므로 업로드 시 UID 보존 여부를 반드시 확인해야 합니다.
+2. **Revision 버전 자동 관리**:
+   - 동일 UID 대시보드 업로드 시 Grafana 내부 버전(Revision)이 자동으로 1 증가합니다.
+3. **패널 Description 연동**:
+   - 추출된 JSON 내 `panels[].description` 속성을 조작한 뒤 업로드하여 패널별 설명 문구를 일괄 업데이트할 수 있습니다.
 
-### ✅ Description 구조
-패널별 Description은 다음 구조로 저장됩니다:
-```json
-"panels": [
-  {
-    "id": 1,
-    "description": "여기에 설명 입력",
-    ...
-  }
-]
-```
+---
 
-## 중요 사항
-
-- **UID는 절대 변경되면 안됨** (알람 연동 때문)
-- 업로드 시 자동으로 백업 생성됨
-- 버전(revision)은 자동으로 증가함
-- Description 편집 후 업로드하면 패널별 도움말 추가 가능
-
-## 파일 위치
-스크립트는 `~/Desktop/`에 저장되었습니다:
-- `~/Desktop/export_all_dashboards.py`
-- `~/Desktop/import_dashboard.py` 
-- `~/Desktop/README.md`
+## 라이선스
+MIT License
