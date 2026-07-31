@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/tabby-asciinema-helper.svg)](https://www.npmjs.com/package/tabby-asciinema-helper)
 [![license](https://img.shields.io/npm/l/tabby-asciinema-helper.svg)](https://github.com/rareram/sre-toolbox/blob/main/LICENSE)
 
-A plugin for Tabby that records terminal sessions into standard **asciinema `.cast` (v2/v3)** files, supports sensitive data masking, and enables direct uploads to asciinema.org.
+A plugin for Tabby that records terminal sessions into standard **asciinema `.cast` (v2 standard / v3 experimental)** files, supports ANSI-preserving sensitive data masking, and enables direct uploads to asciinema.org.
 
 ---
 
@@ -13,8 +13,8 @@ A plugin for Tabby that records terminal sessions into standard **asciinema `.ca
 
 * **Session Recording**: Record terminal sessions directly using toolbar buttons or hotkeys.
 * **No Remote Server Setup**: Captures output directly inside Tabby. No need to install `asciinema` on remote SSH servers.
-* **Standard `.cast` Format**: Compatible with standard `asciinema` CLI and web players.
-* **Sensitive Data Masking**: Scans IP addresses, passwords, API tokens, and custom words in `.cast` files and saves a masked copy.
+* **Standard `.cast` Format**: Compatible with standard `asciinema` CLI and web players (v2 standard recommended).
+* **Sensitive Data Masking**: Interactively scans IPs, User IDs, FQDN domains/hosts, passwords, and API tokens. Preserves ANSI color codes and 1:1 terminal display width using custom mask characters (`*`, `█`, `▒`).
 * **asciinema.org Upload**: Upload `.cast` files to asciinema.org with custom titles and copy web URLs to the clipboard.
 * **Filename Templates**: Customizable filename patterns (`{host}`, `{date}`, `{prefix}`) with automatic numbering to prevent overwriting existing files.
 * **Auto Clipboard Copy**: Automatically copies saved `.cast` file paths to the clipboard upon stopping recording.
@@ -70,7 +70,7 @@ npm run build
 * Tabby 터미널 프로그램에서 asciinema 를 활용하기 쉽도록 도와주는 플러그인입니다.
 * **터미널 화면 녹화**: 툴바 버튼과 단축키로 작업 내용을 `.cast` 파일로 녹화합니다.
 * **원격 서버 설치 불필요**: 원격 서버에 프로그램을 깔 필요 없이 Tabby 프로그램 자체에서 바로 녹화합니다.
-* **민감정보 마스킹**: 비밀번호, IP, API 토큰을 별표(`***`)로 가린 안전한 복사본을 생성합니다.
+* **민감정보 마스킹**: IP, 계정 ID, FQDN 도메인/호스트명, 비밀번호, API 토큰을 정밀 스캔하고, ANSI 색상 코드를 100% 보존하며 1:1 터미널 디스플레이 셀 폭에 맞춰 치환 문자(`*`, `█`, `▒` 등)로 안전하게 마스킹한 복사본을 생성합니다.
 * **asciinema.org 업로드**: 녹화 파일을 웹으로 올려 공유 링크를 클립보드로 복사합니다.
 * **파일명 패턴 & 중복 방지**: 날짜/호스트명 기반 파일명 설정 및 중복 시 번호(`_1.cast`) 자동 부여.
 * **다국어 지원**: Tabby 및 OS 설정 언어에 따라 한국어/영어로 표시됩니다.

@@ -1,0 +1,12 @@
+# cAdvisor 경량 수집 모드 실행 인수 샘플 (운영 권장)
+#
+# 대규모 운영 환경에서 수십~수백 개 컨테이너 모니터링 시
+# CPU 소모량 및 Prometheus TSDB 시계열(Cardinality) 폭증을 예방합니다.
+#
+# 주요 조절 내용:
+# - housekeeping_interval: 10초로 수집 주기 조절 (기본 1초)
+# - disable_metrics: disk, udp, percpu, sched, tcp 비활성화
+
+--port=8080
+--housekeeping_interval=10s
+--disable_metrics=disk,udp,percpu,sched,tcp

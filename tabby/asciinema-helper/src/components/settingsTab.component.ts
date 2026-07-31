@@ -16,12 +16,12 @@ import * as fs from 'fs'
         <div class="form-line mb-3">
             <div class="header">
                 <div class="title">{{ 'Format Version' | translate }}</div>
-                <div class="description">{{ 'Select asciinema file format version (v2 standard or v3 extended)' | translate }}</div>
+                <div class="description">{{ 'Select asciinema file format version (v2 standard recommended for playback compatibility)' | translate }}</div>
             </div>
             <div class="w-50">
                 <select class="form-select" [(ngModel)]="formatVersion" (change)="saveConfig()">
                     <option value="v2">{{ 'v2 (Standard, Recommended)' | translate }}</option>
-                    <option value="v3">{{ 'v3 (Extended Metadata)' | translate }}</option>
+                    <option value="v3">{{ 'v3 (Experimental, May have playback issues)' | translate }}</option>
                 </select>
             </div>
         </div>
@@ -55,7 +55,22 @@ import * as fs from 'fs'
                 <div class="description">{{ 'Limit maximum idle time during playback (0 for no limit / keep 100% original timing)' | translate }}</div>
             </div>
             <div class="w-50">
-                <input type="number" step="0.5" min="0" class="form-control" [(ngModel)]="idleTimeLimit" (change)="saveConfig()" placeholder="2.0">
+                <input type="number" step="0.5" min="0" class="form-control" [(ngModel)]="idleTimeLimit" (change)="saveConfig()" placeholder="0">
+            </div>
+        </div>
+
+        <div class="form-line mb-3">
+            <div class="header">
+                <div class="title">{{ 'Masking Replacement Character' | translate }}</div>
+                <div class="description">{{ 'Select or enter character used for masking sensitive text (1:1 display width preserved)' | translate }}</div>
+            </div>
+            <div class="w-50">
+                <div class="btn-group mb-2 w-100">
+                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '*'" [class.btn-outline-secondary]="maskingChar !== '*'" (click)="setMaskingChar('*')">* (Asterisk)</button>
+                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '█'" [class.btn-outline-secondary]="maskingChar !== '█'" (click)="setMaskingChar('█')">█ (Full Block)</button>
+                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '▒'" [class.btn-outline-secondary]="maskingChar !== '▒'" (click)="setMaskingChar('▒')">▒ (Shade)</button>
+                </div>
+                <input type="text" class="form-control form-control-sm" [ngModel]="maskingChar" (ngModelChange)="setMaskingChar($event)" [placeholder]="'Custom Masking Char (e.g. *, #, █)' | translate">
             </div>
         </div>
 
@@ -98,13 +113,13 @@ import * as fs from 'fs'
                 <div *ngIf="detectedItems.length > 0" class="mb-3">
                     <h6 class="small fw-bold mb-2">{{ 'Detected Sensitive Items' | translate }}:</h6>
                     <div class="list-group mb-3">
-                        <label *ngFor="let item of detectedItems" class="list-group-item list-group-item-dark d-flex align-items-center justify-content-between py-2 px-3 small">
+                        <label *ngFor="let item of detectedItems" class="list-group-item bg-transparent border border-secondary text-light d-flex align-items-center justify-content-between py-2 px-3 small mb-1 rounded">
                             <div>
                                 <input class="form-check-input me-2" type="checkbox" [(ngModel)]="item.enabled">
-                                <span class="badge bg-secondary me-2">{{ item.type }}</span>
-                                <code class="text-warning">{{ item.value }}</code>
+                                <span class="badge bg-info text-dark me-2">{{ item.type }}</span>
+                                <code class="text-warning font-monospace">{{ item.value }}</code>
                             </div>
-                            <span class="badge bg-primary rounded-pill">{{ item.count }} hits</span>
+                            <span class="badge bg-secondary rounded-pill">{{ item.count }} hits</span>
                         </label>
                     </div>
                 </div>
@@ -335,15 +350,28 @@ export class AsciinemaSettingsTabComponent implements OnInit {
         this.updatePluginConfig('savePath', val)
     }
 
+    get maskingChar(): string {
+        return this.config.store.pluginConfig?.['asciinema']?.maskingChar || '*'
+    }
+
+    set maskingChar(val: string) {
+        this.updatePluginConfig('maskingChar', val)
+    }
+
+    setMaskingChar(char: string): void {
+        this.maskingChar = char
+        this.saveConfig()
+    }
+
     private updatePluginConfig(key: string, val: any): void {
-        const current = this.config.store.pluginConfig || {}
-        this.config.store.pluginConfig = {
-            ...current,
-            asciinema: {
-                ...(current['asciinema'] || {}),
-                [key]: val,
-            },
+        if (!this.config.store.pluginConfig) {
+            this.config.store.pluginConfig = {}
         }
+        if (!this.config.store.pluginConfig['asciinema']) {
+            this.config.store.pluginConfig['asciinema'] = {}
+        }
+        this.config.store.pluginConfig['asciinema'][key] = val
+        this.config.save()
     }
 
     async ngOnInit() {
@@ -361,6 +389,29 @@ export class AsciinemaSettingsTabComponent implements OnInit {
         this.cliInfo = await detectAsciinemaCLI()
     }
 
+    private getFilePathFromFile(file: File): string {
+        let filePath = (file as any).path
+        if (!filePath) {
+            try {
+                const webUtils = (window as any).require?.('electron')?.webUtils
+                if (webUtils && typeof webUtils.getPathForFile === 'function') {
+                    filePath = webUtils.getPathForFile(file)
+                }
+            } catch (e) {}
+        }
+
+        if (!filePath || !path.isAbsolute(filePath)) {
+            const fileName = file.name || filePath || ''
+            if (this.savePath && fileName) {
+                const combined = path.join(this.savePath, fileName)
+                if (fs.existsSync(combined)) {
+                    return combined
+                }
+            }
+        }
+        return filePath || file.name
+    }
+
     triggerFileSelectForScan() {
         this.scanFileInput?.nativeElement.click()
     }
@@ -369,7 +420,8 @@ export class AsciinemaSettingsTabComponent implements OnInit {
         const input = event.target as HTMLInputElement
         if (input.files && input.files.length > 0) {
             const file = input.files[0]
-            this.performScan((file as any).path || file.name)
+            const realPath = this.getFilePathFromFile(file)
+            this.performScan(realPath)
         }
     }
 
@@ -381,7 +433,7 @@ export class AsciinemaSettingsTabComponent implements OnInit {
         const input = event.target as HTMLInputElement
         if (input.files && input.files.length > 0) {
             const file = input.files[0]
-            this.uploadFilePath = (file as any).path || file.name
+            this.uploadFilePath = this.getFilePathFromFile(file)
         }
     }
 
@@ -475,7 +527,7 @@ export class AsciinemaSettingsTabComponent implements OnInit {
 
         try {
             const content = fs.readFileSync(this.scannedFilePath, 'utf8')
-            const maskedContent = maskCastContent(content, selectedKeywords, '***')
+            const maskedContent = maskCastContent(content, selectedKeywords, this.maskingChar)
 
             const dir = path.dirname(this.scannedFilePath)
             const ext = path.extname(this.scannedFilePath)

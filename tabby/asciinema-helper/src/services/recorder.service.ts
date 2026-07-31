@@ -7,12 +7,14 @@ import * as path from 'path'
 import * as os from 'os'
 import { execFile } from 'child_process'
 import { detectAsciinemaCLI } from './cliDetector'
-import { registerPluginTranslations, translations } from '../i18n'
+import { generateMaskReplacement } from './maskingScanner'
+import { registerPluginTranslations } from '../i18n'
 
 export interface AsciinemaHeader {
     version: number
-    width: number
-    height: number
+    width?: number
+    height?: number
+    term?: { cols: number; rows: number }
     timestamp: number
     title?: string
     env?: Record<string, string>
@@ -26,6 +28,36 @@ export interface RecordingSession {
     header: AsciinemaHeader
     subscriptionOutput?: Subscription
     subscriptionResize?: Subscription
+}
+
+function extractCleanHost (tab: any): string {
+    if (!tab) return 'local'
+
+    if (tab.profile?.options?.host && typeof tab.profile.options.host === 'string') {
+        const host = tab.profile.options.host.trim()
+        if (host && !host.includes('/') && !host.includes('\\')) {
+            return host
+        }
+    }
+
+    let rawTitle = tab.title || tab.customTitle || 'local'
+    if (typeof rawTitle !== 'string') {
+        rawTitle = String(rawTitle)
+    }
+
+    if (rawTitle.includes(':')) {
+        rawTitle = rawTitle.split(':')[0]
+    }
+    if (rawTitle.includes('~')) {
+        rawTitle = rawTitle.split('~')[0]
+    }
+    if (rawTitle.includes(' - ')) {
+        rawTitle = rawTitle.split(' - ')[0]
+    }
+
+    const parts = rawTitle.trim().split(/[\s/\\]+/)
+    const clean = parts[0] ? parts[0].trim() : 'local'
+    return clean || 'local'
 }
 
 @Injectable({ providedIn: 'root' })
@@ -81,6 +113,10 @@ export class AsciinemaRecorderService {
         return this.config.store.pluginConfig?.['asciinema']?.maskingKeywords || ''
     }
 
+    get maskingChar (): string {
+        return this.config.store.pluginConfig?.['asciinema']?.maskingChar || '*'
+    }
+
     isRecording (tab: BaseTerminalTabComponent<any>): boolean {
         return this.activeRecordings.has(tab)
     }
@@ -98,14 +134,22 @@ export class AsciinemaRecorderService {
             this.notifications.notice(this.translate.instant('No recent .cast recording file found.'))
             return
         }
-        if (!tab || !tab.session) {
-            this.notifications.error(this.translate.instant('Recording Error'), this.translate.instant('No active terminal session.'))
-            return
-        }
 
-        const cmd = `asciinema play "${this.lastRecordedFilePath}"\r`
-        tab.session.write(Buffer.from(cmd) as any)
-        this.notifications.info(this.translate.instant('Asciinema Playback Started'), `asciinema play "${this.lastRecordedFilePath}"`)
+        const activeTab = tab || this.app.activeTab
+        if (activeTab && (activeTab as any).session) {
+            const playCmd = `asciinema play "${this.lastRecordedFilePath}"\n`
+            ;(activeTab as any).session.write(playCmd)
+            this.notifications.info(
+                this.translate.instant('Asciinema Playback Started'),
+                `$ asciinema play "${this.lastRecordedFilePath}"`,
+            )
+        } else {
+            this.platform.setClipboard({ text: `asciinema play "${this.lastRecordedFilePath}"` })
+            this.notifications.info(
+                this.translate.instant('Copied to clipboard.'),
+                `asciinema play "${this.lastRecordedFilePath}"`,
+            )
+        }
     }
 
     openSettings (): void {
@@ -126,18 +170,23 @@ export class AsciinemaRecorderService {
         const rows = tab.size?.rows || 24
         const now = Date.now() / 1000
 
-        const verNumber = this.formatVersion === 'v3' ? 3 : 2
+        const isV3 = this.formatVersion === 'v3'
         const headerTitle = this.recordingTitle && this.recordingTitle.trim() ? this.recordingTitle.trim() : (tab.title || 'Tabby Session Recording')
 
         const header: AsciinemaHeader = {
-            version: verNumber,
-            width: columns,
-            height: rows,
+            version: isV3 ? 3 : 2,
             timestamp: Math.floor(now),
             title: headerTitle,
             env: {
                 TERM: 'xterm-256color',
             },
+        }
+
+        if (isV3) {
+            header.term = { cols: columns, rows: rows }
+        } else {
+            header.width = columns
+            header.height = rows
         }
 
         if (this.idleTimeLimit > 0) {
@@ -151,7 +200,7 @@ export class AsciinemaRecorderService {
             header,
         }
 
-        // 1. Output stream capture
+        // 1. Output stream capture (순정 원본 타임스탬프 계산 방식 100% 유지)
         if (tab.session.output$) {
             session.subscriptionOutput = tab.session.output$.subscribe((data: string) => {
                 const elapsedTime = (Date.now() / 1000) - session.startTime
@@ -191,7 +240,7 @@ export class AsciinemaRecorderService {
                 fs.mkdirSync(outputDir, { recursive: true })
             }
 
-            const rawHost = (tab as any)?.profile?.options?.host || tab.title || 'local'
+            const rawHost = extractCleanHost(tab)
             const hostSanitized = rawHost.replace(/[/\\?%*:|"<> ]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'session'
             const dateStr = new Date().toISOString().replace(/T/, '-').replace(/[:.]/g, '').slice(0, 15)
             const prefixStr = (this.filePrefix && this.filePrefix.trim() ? this.filePrefix.trim() : 'asciinema').replace(/[/\\?%*:|"<> ]/g, '-')
@@ -225,11 +274,13 @@ export class AsciinemaRecorderService {
             const lines: string[] = []
             lines.push(JSON.stringify(session.header))
 
-            // 마스킹 키워드 준비
+            // 마스킹 키워드 및 마스킹 문자 준비
             const keywords = this.maskingKeywords
                 .split(',')
                 .map(k => k.trim())
                 .filter(k => k.length > 0)
+
+            const maskChar = this.maskingChar || '*'
 
             for (const event of session.events) {
                 const time = Math.round(event[0] * 10000) / 10000
@@ -238,7 +289,8 @@ export class AsciinemaRecorderService {
                     for (const kw of keywords) {
                         if (kw) {
                             const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                            text = text.replace(new RegExp(escaped, 'g'), '***')
+                            const replacement = generateMaskReplacement(kw, maskChar)
+                            text = text.replace(new RegExp(escaped, 'g'), replacement)
                         }
                     }
                 }
@@ -270,28 +322,40 @@ export class AsciinemaRecorderService {
                     `${saveLabel}\n${filePath}\n\n${guideLabel} (${cli.platformName}): $ ${cli.guide}`,
                 )
             }
-        } catch (err: any) {
-            this.notifications.error(this.translate.instant('Save Failed'), err?.message || String(err))
+        } catch (e: any) {
+            this.notifications.error(this.translate.instant('Save Failed'), e.message || String(e))
         }
     }
 
-    uploadToAsciinema(filePath: string): Promise<string> {
-        return new Promise((resolve, reject) => {
-            if (!fs.existsSync(filePath)) {
-                reject(new Error('File not found: ' + filePath))
-                return
+    async uploadToAsciinema (filePath: string): Promise<string> {
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`File not found: ${filePath}`)
+        }
+
+        const cli = await detectAsciinemaCLI()
+        let binPath = 'asciinema'
+        if (cli.installed && cli.guide.includes('brew')) {
+            if (fs.existsSync('/opt/homebrew/bin/asciinema')) {
+                binPath = '/opt/homebrew/bin/asciinema'
+            } else if (fs.existsSync('/usr/local/bin/asciinema')) {
+                binPath = '/usr/local/bin/asciinema'
             }
+        }
 
-            execFile('asciinema', ['upload', filePath], (err, stdout, stderr) => {
-                const combined = (stdout || '') + '\n' + (stderr || '')
-                const urlMatch = combined.match(/https:\/\/asciinema\.org\/a\/[a-zA-Z0-9]+/)
+        return new Promise((resolve, reject) => {
+            const envPATH = process.env.PATH || ''
+            const extraPaths = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:~/.local/bin'
+            const fullPATH = `${extraPaths}:${envPATH}`
 
+            execFile(binPath, ['upload', filePath], { env: { ...process.env, PATH: fullPATH } }, (err, stdout, stderr) => {
+                const combined = `${stdout}\n${stderr}`
+                const urlMatch = combined.match(/(https:\/\/asciinema\.org\/a\/[A-Za-z0-9]+)/)
                 if (urlMatch) {
-                    resolve(urlMatch[0])
+                    resolve(urlMatch[1])
                 } else if (err) {
-                    reject(new Error(err.message || combined.trim()))
+                    reject(new Error(err.message || stderr || 'Upload failed'))
                 } else {
-                    resolve(combined.trim())
+                    reject(new Error(`Could not find upload URL in CLI output:\n${combined}`))
                 }
             })
         })
