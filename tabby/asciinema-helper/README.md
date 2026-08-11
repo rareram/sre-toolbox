@@ -7,8 +7,8 @@
 ## Screenshots
 
 <p align="left">
-  <img src="../../docs/asciinema-helper/asciinema_1.png" alt="Session Discovery & Custom Record Modal" width="480" />
-  <img src="../../docs/asciinema-helper/asciinema_2.png" alt="Plugin Settings & Sensitive Redaction Tool" width="480" />
+  <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_1.png" alt="Session Discovery & Custom Record Modal" width="480" />
+  <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_2.png" alt="Plugin Settings & Sensitive Redaction Tool" width="480" />
 </p>
 
 ---

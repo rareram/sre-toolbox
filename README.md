@@ -40,8 +40,8 @@
 ### 8. Tabby 터미널 플러그인 (`tabby/`)
 - **`asciinema-helper`**: 서버 CLI 및 Headless 대상 세션(Herdr 멀티에이전트, Docker, Tmux)의 작업 과정을 영상처럼 녹화하는 Asciinema 헬퍼 플러그인.
   <p align="left">
-    <img src="docs/asciinema-helper/asciinema_1.png" alt="Session Discovery Modal" width="480" />
-    <img src="docs/asciinema-helper/asciinema_2.png" alt="Plugin Settings Tab" width="480" />
+    <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_1.png" alt="Session Discovery Modal" width="480" />
+    <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_2.png" alt="Plugin Settings Tab" width="480" />
   </p>
 
 ---

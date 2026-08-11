@@ -16,6 +16,10 @@
   ],
   "author": "SRE Toolbox",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rareram/sre-toolbox.git"
+  },
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack --mode production",
