@@ -26,6 +26,8 @@ module.exports = {
   },
   externals: [
     /^@angular\//,
+    /^@ng-bootstrap\//,
+    /^@popperjs\//,
     /^rxjs/,
     /^tabby-/,
     'fs',

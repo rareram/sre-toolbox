@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core'
 import { ToolbarButtonProvider, ToolbarButton, AppService, TranslateService, SplitTabComponent, ConfigService, NotificationsService, PlatformService, HotkeysService } from 'tabby-core'
 import { BaseTerminalTabComponent } from 'tabby-terminal'
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { AsciinemaRecorderService } from './services/recorder.service'
+import { AsciinemaSessionPickerModalComponent } from './components/sessionPickerModal.component'
+import { forwardIcon } from './icons/forwardIcon'
 import { registerPluginTranslations } from './i18n'
 
 const iconRecord = require('./icons/record.svg')
@@ -13,7 +16,8 @@ function resolveIcon(iconRaw: any): string {
 
 @Injectable()
 export class AsciinemaButtonProvider extends ToolbarButtonProvider {
-    private activeToolbarButton: ToolbarButton | null = null
+    private quickToolbarButton: ToolbarButton | null = null
+    private customToolbarButton: ToolbarButton | null = null
 
     constructor (
         private app: AppService,
@@ -22,6 +26,7 @@ export class AsciinemaButtonProvider extends ToolbarButtonProvider {
         private config: ConfigService,
         private notifications: NotificationsService,
         private platform: PlatformService,
+        private ngbModal: NgbModal,
         hotkeys: HotkeysService,
     ) {
         super()
@@ -82,27 +87,61 @@ export class AsciinemaButtonProvider extends ToolbarButtonProvider {
     }
 
     private updateButtonState (): void {
-        if (!this.activeToolbarButton) {
-            return
-        }
         const tab = this.getTerminalTab()
         const isRecording = !!(tab && this.recorder.isRecording(tab))
 
-        this.activeToolbarButton.icon = this.getIcon(isRecording)
-        this.activeToolbarButton.title = isRecording
-            ? this.translate.instant('Asciinema Stop Recording (Ctrl+Shift+R)')
-            : this.translate.instant('Asciinema Start Recording (Ctrl+Shift+R)')
+        if (this.quickToolbarButton) {
+            this.quickToolbarButton.icon = this.getIcon(isRecording)
+            this.quickToolbarButton.title = isRecording
+                ? this.translate.instant('Asciinema Stop Recording (Ctrl+Shift+R)')
+                : this.translate.instant('Asciinema Quick Record (Ctrl+Shift+R)')
+        }
+    }
+
+    private openSessionPickerModal(): void {
+        const activeTab = this.getTerminalTab()
+        const modalRef = this.ngbModal.open(AsciinemaSessionPickerModalComponent, {
+            size: 'md',
+            backdrop: 'static',
+        })
+
+        modalRef.componentInstance.activeTab = activeTab
+
+        modalRef.result.then((res) => {
+            if (res && res.command) {
+                const tab = this.getTerminalTab()
+                if (tab && (tab as any).session) {
+                    ;(tab as any).session.write(res.command + '\r')
+
+                    if (res.timerMinutes && res.timerMinutes > 0) {
+                        const ms = res.timerMinutes * 60 * 1000
+                        setTimeout(() => {
+                            if (this.recorder.isRecording(tab)) {
+                                this.recorder.stopRecording(tab)
+                                this.notifications.notice(this.translate.instant('Recording stopped by timer limit.'))
+                            }
+                        }, ms)
+                    }
+
+                    this.recorder.startRecording(tab, res.sessionPrefix)
+                    this.updateButtonState()
+                } else {
+                    this.notifications.notice(this.translate.instant('No active terminal session.'))
+                }
+            }
+        }).catch(() => {})
     }
 
     provide (): ToolbarButton[] {
         const tab = this.getTerminalTab()
         const isRecording = !!(tab && this.recorder.isRecording(tab))
 
-        const button: ToolbarButton = {
+        // Button 1: Original Quick Record Button (Single Triangle ▶: record.svg / stop.svg)
+        const quickButton: ToolbarButton = {
             icon: this.getIcon(isRecording),
             title: isRecording 
                 ? this.translate.instant('Asciinema Stop Recording (Ctrl+Shift+R)') 
-                : this.translate.instant('Asciinema Start Recording (Ctrl+Shift+R)'),
+                : this.translate.instant('Asciinema Quick Record (Ctrl+Shift+R)'),
             touchBarNSImage: 'NSTouchBarRecordStartTemplate',
             weight: 5,
             click: () => {
@@ -115,7 +154,27 @@ export class AsciinemaButtonProvider extends ToolbarButtonProvider {
             },
         }
 
-        this.activeToolbarButton = button
-        return [button]
+        // Button 2: Twin Triangle Forward Icon (▶▶: forwardIcon) for Session Discovery & Custom Record
+        const customButton: ToolbarButton = {
+            icon: forwardIcon,
+            title: this.translate.instant('Asciinema Session & Custom Record'),
+            touchBarNSImage: 'NSTouchBarQuickLookTemplate',
+            weight: 6,
+            click: () => {
+                const currentTab = this.getTerminalTab()
+                if (currentTab && this.recorder.isRecording(currentTab)) {
+                    // Stop recording if active
+                    this.recorder.stopRecording(currentTab)
+                    this.updateButtonState()
+                } else {
+                    // Open session picker modal if not recording
+                    this.openSessionPickerModal()
+                }
+            },
+        }
+
+        this.quickToolbarButton = quickButton
+        this.customToolbarButton = customButton
+        return [quickButton, customButton]
     }
 }

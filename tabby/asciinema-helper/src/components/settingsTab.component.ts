@@ -4,6 +4,7 @@ import { detectAsciinemaCLI, CLIInfo } from '../services/cliDetector'
 import { scanSensitiveData, maskCastContent, DetectedItem } from '../services/maskingScanner'
 import { AsciinemaRecorderService } from '../services/recorder.service'
 import { registerPluginTranslations } from '../i18n'
+import { STANDALONE_PLAYER_HTML } from '../utils/standalonePlayerHtml'
 import * as os from 'os'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -13,65 +14,100 @@ import * as fs from 'fs'
     template: `
         <h3 class="mb-3">{{ 'Asciinema Recording Settings' | translate }}</h3>
 
-        <div class="form-line mb-3">
+        <!-- CLI Not Required Assurance Notice Banner (2-line clean format, optional phrasing) -->
+        <div class="alert alert-info py-2 px-3 mb-4 small d-flex align-items-center">
+            <span class="me-2 fs-5">💡</span>
+            <div>
+                <div>{{ 'Notice: Asciinema CLI is optional for recording in Tabby.' | translate }}</div>
+                <div class="opacity-75">{{ '(CLI is only needed to play recordings in terminal: $ asciinema play)' | translate }}</div>
+            </div>
+        </div>
+
+        <!-- Section 1: Basic Recording & Storage Limits -->
+        <div class="form-line">
             <div class="header">
                 <div class="title">{{ 'Format Version' | translate }}</div>
-                <div class="description">{{ 'Select asciinema file format version (v2 standard recommended for playback compatibility)' | translate }}</div>
+                <div class="description">{{ 'Choose asciinema format version (v2 recommended for broad compatibility)' | translate }}</div>
             </div>
-            <div class="w-50">
-                <select class="form-select" [(ngModel)]="formatVersion" (change)="saveConfig()">
-                    <option value="v2">{{ 'v2 (Standard, Recommended)' | translate }}</option>
-                    <option value="v3">{{ 'v3 (Experimental, May have playback issues)' | translate }}</option>
-                </select>
-            </div>
+            <select class="form-control w-50" [(ngModel)]="formatVersion" (change)="saveConfig()">
+                <option value="v2">{{ 'v2 (Standard, Recommended)' | translate }}</option>
+                <option value="v3">{{ 'v3 (Experimental, May have playback issues)' | translate }}</option>
+            </select>
         </div>
 
-        <div class="form-line mb-3">
+        <!-- Parent Option: Filename Pattern -->
+        <div class="form-line border-bottom-0 pb-1">
             <div class="header">
                 <div class="title">{{ 'Filename Pattern' | translate }}</div>
-                <div class="description">{{ 'Pattern template for generated .cast filenames' | translate }}</div>
-                <div class="small text-info mt-1 fw-bold">
-                    {{ 'Available variables' | translate }}: <code>[host]</code>, <code>[date]</code>, <code>[prefix]</code> (<code>[]</code>, <code>{{ '{}' }}</code>, <code>%%</code> {{ 'supported' | translate }})
+                <div class="description">
+                    {{ 'Template pattern for .cast filenames' | translate }}
+                    <span class="text-info ms-2">
+                        ({{ 'Variables' | translate }}: <code>[host]</code>, <code>[date]</code>, <code>[prefix]</code> | <code>[]</code>, <code>&#123;&#125;</code>, <code>%%</code> {{ 'supported' | translate }})
+                    </span>
                 </div>
             </div>
-            <div class="w-50">
-                <input type="text" class="form-control" [(ngModel)]="filenamePattern" (change)="saveConfig()" [attr.placeholder]="'{host}_{date}'">
-            </div>
+            <input type="text" class="form-control w-50" [(ngModel)]="filenamePattern" (change)="saveConfig()" [attr.placeholder]="'{date}_{host}'">
         </div>
 
-        <div class="form-line mb-3">
-            <div class="header">
-                <div class="title">{{ 'Default Prefix' | translate }}</div>
-                <div class="description">{{ 'Fallback prefix string for prefix variable' | translate }}</div>
+        <!-- Child Option: Default Prefix -->
+        <div class="form-line ps-4 pt-1 border-top-0 sub-option-line">
+            <div class="header border-start border-2 border-info ps-2">
+                <div class="title small text-muted">{{ 'Default Prefix' | translate }}</div>
+                <div class="description small">{{ 'Fallback string used for [prefix] variable in filename pattern' | translate }}</div>
             </div>
-            <div class="w-50">
-                <input type="text" class="form-control" [(ngModel)]="filePrefix" (change)="saveConfig()" placeholder="asciinema">
-            </div>
+            <input type="text" class="form-control w-50 form-control-sm" [(ngModel)]="filePrefix" (change)="saveConfig()" placeholder="asciinema">
         </div>
 
-        <div class="form-line mb-3">
+        <div class="form-line">
             <div class="header">
                 <div class="title">{{ 'Idle Time Limit (Seconds)' | translate }}</div>
-                <div class="description">{{ 'Limit maximum idle time during playback (0 for no limit / keep 100% original timing)' | translate }}</div>
+                <div class="description">{{ 'Cap idle pauses during playback (Default: 2.0s | 0 for no limit)' | translate }}</div>
             </div>
-            <div class="w-50">
-                <input type="number" step="0.5" min="0" class="form-control" [(ngModel)]="idleTimeLimit" (change)="saveConfig()" placeholder="0">
+            <input type="number" step="0.5" min="0" class="form-control w-50" [(ngModel)]="idleTimeLimit" (change)="saveConfig()" placeholder="2.0">
+        </div>
+
+        <!-- Parent Option: Single File Size Limit -->
+        <div class="form-line border-bottom-0 pb-1">
+            <div class="header">
+                <div class="title">{{ 'Single File Size Limit (MB)' | translate }}</div>
+                <div class="description">{{ 'Maximum size per recording file (Default: 8 MB | Max: 30 MB)' | translate }}</div>
+            </div>
+            <input type="number" min="1" max="30" class="form-control w-50" [(ngModel)]="maxSingleFileSizeMB" (change)="saveConfig()" placeholder="8">
+        </div>
+
+        <div *ngIf="maxSingleFileSizeMB > 8" class="alert alert-warning py-1 px-3 my-2 small fw-bold">
+            {{ 'Files over 8 MB may fail to upload to asciinema.org (Local playback only)' | translate }}
+        </div>
+
+        <!-- Child Option 1: Auto-Split Files on Size Limit -->
+        <div class="form-line ps-4 pt-1 border-top-0 border-bottom-0 pb-1 sub-option-line">
+            <div class="header border-start border-2 border-info ps-2">
+                <div class="title small text-muted">{{ 'Auto-Split Files on Size Limit' | translate }}</div>
+                <div class="description small">{{ 'Automatically split into multiple .cast files (_2, _3) when size limit is reached' | translate }}</div>
+            </div>
+            <div class="form-check form-switch m-0 p-0">
+                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" style="width: 2.5em; height: 1.25em;" [(ngModel)]="enableFileSplitting" (change)="saveConfig()">
             </div>
         </div>
 
-        <div class="form-line mb-3">
-            <div class="header">
-                <div class="title">{{ 'Masking Replacement Character' | translate }}</div>
-                <div class="description">{{ 'Select or enter character used for masking sensitive text (1:1 display width preserved)' | translate }}</div>
-            </div>
-            <div class="w-50">
-                <div class="btn-group mb-2 w-100">
-                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '*'" [class.btn-outline-secondary]="maskingChar !== '*'" (click)="setMaskingChar('*')">* (Asterisk)</button>
-                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '█'" [class.btn-outline-secondary]="maskingChar !== '█'" (click)="setMaskingChar('█')">█ (Full Block)</button>
-                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '▒'" [class.btn-outline-secondary]="maskingChar !== '▒'" (click)="setMaskingChar('▒')">▒ (Shade)</button>
+        <!-- Child Option 2: Max Split File Count (Only visible when Auto-Split is enabled) -->
+        <div *ngIf="enableFileSplitting" class="form-line ps-4 pt-1 border-top-0 sub-option-line">
+            <div class="header border-start border-2 border-info ps-2">
+                <div class="title small text-muted">{{ 'Max Split File Count' | translate }}</div>
+                <div class="description small">
+                    {{ 'Maximum number of split parts (0: Auto-calculated based on total storage limit)' | translate }}
+                    <span class="text-info fw-bold ms-1">(Max ~{{ calculatedMaxParts }} parts for {{ maxStorageMB }}MB)</span>
                 </div>
-                <input type="text" class="form-control form-control-sm" [ngModel]="maskingChar" (ngModelChange)="setMaskingChar($event)" [placeholder]="'Custom Masking Char (e.g. *, #, █)' | translate">
             </div>
+            <input type="number" min="0" max="50" class="form-control w-50 form-control-sm" [(ngModel)]="maxSplitCount" (change)="saveConfig()" placeholder="0">
+        </div>
+
+        <div class="form-line">
+            <div class="header">
+                <div class="title">{{ 'Total Storage Limit (MB)' | translate }}</div>
+                <div class="description">{{ 'Total storage capacity for recordings (Default: 100 MB | Auto-cleans old files when full)' | translate }}</div>
+            </div>
+            <input type="number" min="10" class="form-control w-50" [(ngModel)]="maxStorageMB" (change)="saveConfig()" placeholder="100">
         </div>
 
         <div class="form-line mb-4">
@@ -85,19 +121,40 @@ import * as fs from 'fs'
             </div>
         </div>
 
-        <!-- Interactive Sensitive Data Scanner & Masking Section -->
+        <!-- Section 2: Interactive Sensitive Data Scanner & Masking Section -->
         <h3 class="mt-4 mb-3">{{ 'Interactive Sensitive Data Scanner & Masking Tool' | translate }}</h3>
 
         <div class="card p-3 mb-4 guide-card">
             <p class="guide-text small mb-3">
-                {{ 'Scan recorded .cast files to detect & mask IPs, API tokens, passwords interactively' | translate }}
+                {{ 'Scan .cast files to detect and redact sensitive IPs, tokens, and passwords' | translate }}
             </p>
 
+            <!-- Parent Option: Masking Replacement Preset Buttons -->
+            <div class="form-line border-0 pt-0 pb-2 mb-1">
+                <div class="header">
+                    <div class="title">{{ 'Masking Replacement Character' | translate }}</div>
+                    <div class="description">{{ 'Masking replacement character (Preserves 1:1 terminal display width)' | translate }}</div>
+                </div>
+                <div class="btn-group w-50">
+                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '*'" [class.btn-outline-secondary]="maskingChar !== '*'" (click)="setMaskingChar('*')">* (Asterisk)</button>
+                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '█'" [class.btn-outline-secondary]="maskingChar !== '█'" (click)="setMaskingChar('█')">█ (Full Block)</button>
+                    <button type="button" class="btn btn-sm" [class.btn-primary]="maskingChar === '▒'" [class.btn-outline-secondary]="maskingChar !== '▒'" (click)="setMaskingChar('▒')">▒ (Shade)</button>
+                </div>
+            </div>
+
+            <!-- Child Option: Custom Masking Input -->
+            <div class="form-line border-0 pt-1 pb-3 mb-3 ps-4 sub-option-line">
+                <div class="header border-start border-2 border-info ps-2">
+                    <div class="title small text-muted">{{ 'Custom Masking Char (e.g. *, #, █)' | translate }}</div>
+                </div>
+                <input type="text" class="form-control form-control-sm w-50 text-center" [ngModel]="maskingChar" (ngModelChange)="setMaskingChar($event)" [placeholder]="'Custom Masking Char (e.g. *, #, █)' | translate">
+            </div>
+
             <div class="d-flex gap-2 mb-3">
-                <button class="btn btn-primary btn-sm" (click)="scanRecentFile()">
+                <button class="btn btn-primary" (click)="scanRecentFile()">
                     {{ 'Scan & Mask Recent File' | translate }}
                 </button>
-                <button class="btn btn-outline-info btn-sm" (click)="triggerFileSelectForScan()">
+                <button class="btn btn-outline-info" (click)="triggerFileSelectForScan()">
                     {{ 'Select & Scan .cast File' | translate }}
                 </button>
                 <input #scanFileInput type="file" accept=".cast" style="display: none" (change)="onScanFileSelected($event)">
@@ -125,104 +182,96 @@ import * as fs from 'fs'
                 </div>
 
                 <div class="input-group w-75 mb-3">
-                    <input type="text" class="form-control form-control-sm" [(ngModel)]="customWord" [placeholder]="'Add Custom Word' | translate">
-                    <button class="btn btn-outline-secondary btn-sm" (click)="addCustomWord()">{{ 'Add Word' | translate }}</button>
+                    <input type="text" class="form-control" [(ngModel)]="customWord" [placeholder]="'Add Custom Word' | translate">
+                    <button class="btn btn-outline-secondary" (click)="addCustomWord()">{{ 'Add Word' | translate }}</button>
                 </div>
 
-                <button class="btn btn-success btn-sm" (click)="applyMasking()">
+                <button class="btn btn-success" (click)="applyMasking()">
                     {{ 'Apply Masking & Save As New File' | translate }}
                 </button>
             </div>
         </div>
 
-        <!-- Upload to asciinema.org Section -->
-        <h3 class="mt-4 mb-3">{{ 'Upload Recording to asciinema.org' | translate }}</h3>
+        <!-- Section 3: Upload to asciinema.org Section -->
+        <h3 class="mt-4 mb-3">{{ 'Web Upload & Link Sharing (asciinema.org)' | translate }}</h3>
 
         <div class="card p-3 mb-4 guide-card">
-            <p class="guide-text small mb-3">
-                {{ 'Upload recent .cast file to asciinema.org with custom title for easy web sharing' | translate }}
+            <p class="guide-text small mb-2">
+                {{ 'Upload .cast files to asciinema.org for instant web link sharing' | translate }}
             </p>
+            <div class="alert alert-secondary py-2 px-3 mb-3 small">
+                <div>{{ 'Optional: Web upload is completely optional.' | translate }}</div>
+                <div>{{ 'No account required to upload (claim anytime via asciinema auth).' | translate }}</div>
+            </div>
 
-            <div class="mb-3 w-75">
-                <label class="form-label small fw-bold">Target File Path (.cast)</label>
-                <div class="input-group">
-                    <input type="text" class="form-control form-control-sm font-monospace" [(ngModel)]="uploadFilePath" placeholder="/path/to/recording.cast">
-                    <button class="btn btn-outline-secondary btn-sm" (click)="triggerFileSelectForUpload()">Select File</button>
+            <div class="form-line border-0 pt-0 pb-2">
+                <div class="header">
+                    <div class="title">{{ 'Target File Select (.cast)' | translate }}</div>
+                </div>
+                <div class="input-group w-50">
+                    <input type="text" class="form-control font-monospace" [(ngModel)]="uploadFilePath" placeholder="/path/to/recording.cast">
+                    <button class="btn btn-outline-secondary" (click)="triggerFileSelectForUpload()">{{ 'Browse' | translate }}</button>
                     <input #uploadFileInput type="file" accept=".cast" style="display: none" (change)="onUploadFileSelected($event)">
                 </div>
             </div>
 
-            <div class="input-group w-75 mb-3">
-                <span class="input-group-text fw-bold small">Title</span>
-                <input type="text" class="form-control" [(ngModel)]="uploadTitle" placeholder="My Terminal Session Title">
-                <button class="btn btn-primary" [disabled]="isUploading || !uploadFilePath" (click)="uploadSpecifiedFile()">
-                    {{ isUploading ? ('Uploading to asciinema.org...' | translate) : ('Upload File to asciinema.org' | translate) }}
-                </button>
+            <div class="form-line border-0 pt-0 pb-3">
+                <div class="header">
+                    <div class="title">{{ 'Upload File Title (asciinema.org)' | translate }}</div>
+                </div>
+                <div class="input-group w-50">
+                    <input type="text" class="form-control" [(ngModel)]="uploadTitle" placeholder="My Terminal Session Title">
+                    <button class="btn btn-primary" [disabled]="isUploading || !uploadFilePath" (click)="uploadSpecifiedFile()">
+                        {{ isUploading ? ('Uploading...' | translate) : ('Upload' | translate) }}
+                    </button>
+                </div>
             </div>
         </div>
 
-        <h3 class="mt-4 mb-3">{{ 'Hotkeys & Guide' | translate }}</h3>
+        <!-- Section 4: 3-Step Playback Guide -->
+        <h3 class="mt-4 mb-3">{{ '3 Ways to Play .cast Session Recordings' | translate }}</h3>
 
         <div class="card p-3 mb-4 guide-card">
-            <p class="guide-text small mb-3">
-                {{ 'Asciinema features can be controlled using 5 hotkeys below. To change or add hotkeys, go to Tabby Settings > Hotkeys and search for Asciinema.' | translate }}
-            </p>
-            <table class="table table-dark table-striped align-middle small mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 25%">{{ 'Feature' | translate }}</th>
-                        <th style="width: 25%">{{ 'Default Hotkey' | translate }}</th>
-                        <th style="width: 50%">{{ 'Description' | translate }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>{{ '(1) Start / Stop Recording (Toggle)' | translate }}</strong></td>
-                        <td><span class="badge bg-primary">Ctrl + Shift + R</span></td>
-                        <td>{{ 'Toggles recording state back and forth.' | translate }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>{{ '(2) Start Recording Only' | translate }}</strong></td>
-                        <td><span class="badge bg-secondary">{{ 'Unassigned (Custom)' | translate }}</span></td>
-                        <td>{{ 'Starts recording for the active terminal session.' | translate }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>{{ '(3) Stop Recording Only' | translate }}</strong></td>
-                        <td><span class="badge bg-secondary">{{ 'Unassigned (Custom)' | translate }}</span></td>
-                        <td>{{ 'Stops recording and saves to a .cast file.' | translate }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>{{ '(4) Play Last Recording in CLI' | translate }}</strong></td>
-                        <td><span class="badge bg-primary">Ctrl + Shift + P</span></td>
-                        <td>{{ 'Auto-types asciinema play command into terminal session.' | translate }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>{{ '(5) Open Settings & Help' | translate }}</strong></td>
-                        <td><span class="badge bg-secondary">{{ 'Unassigned (Custom)' | translate }}</span></td>
-                        <td>{{ 'Opens Asciinema settings tab immediately.' | translate }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <h3 class="mt-4 mb-3">{{ 'CLI Usage & Playback Guide' | translate }}</h3>
-
-        <div class="card p-3 mb-4 guide-card">
-            <h5 class="mb-2 guide-title">{{ 'How to play recordings (.cast) in terminal (CLI)' | translate }}</h5>
-            <p class="guide-text small mb-2">
-                {{ 'When recording finishes, the absolute path of the .cast file is copied to clipboard. You can play it anytime in terminal using asciinema play command:' | translate }}
-            </p>
-            <div class="input-group w-100 mb-3">
-                <span class="input-group-text font-monospace">$</span>
-                <input type="text" class="form-control font-monospace" [value]="'asciinema play &quot;' + savePath + '/filename.cast&quot;'" readonly>
-                <button class="btn btn-outline-secondary" (click)="copyCommand('asciinema play &quot;' + savePath + '/&quot;')">{{ 'Copy Command Example' | translate }}</button>
+            <!-- Method 1: Hotkey Quick Playback -->
+            <div class="mb-3">
+                <h5 class="mb-2 guide-title text-info fw-bold">{{ 'Method 1 (Fastest): Hotkey Quick Playback (Ctrl+Shift+P)' | translate }}</h5>
+                <p class="guide-text small mb-0">
+                    {{ 'Press Ctrl+Shift+P in terminal to instantly play the latest recording:' | translate }}
+                    <span class="badge bg-primary ms-1 font-monospace">Ctrl + Shift + P</span>
+                </p>
             </div>
-            <div class="small guide-tip">
-                {{ 'Note: During asciinema play execution, you can use Space (pause/play), f (2x speed), . (step frame).' | translate }}
+
+            <!-- Method 2: Standalone HTML Player -->
+            <div class="border-top pt-3 mb-3">
+                <h5 class="mb-2 guide-title text-info fw-bold">{{ 'Method 2 (No CLI Needed): Standalone HTML Web Player' | translate }}</h5>
+                <p class="guide-text small mb-2">
+                    {{ 'Download standalone HTML web player to view .cast recordings in browser without CLI or server:' | translate }}
+                </p>
+                <div>
+                    <button class="btn btn-outline-primary" (click)="downloadStandalonePlayer()">
+                        {{ 'Download Standalone HTML Player' | translate }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Method 3: Terminal CLI Command -->
+            <div class="border-top pt-3">
+                <h5 class="mb-2 guide-title text-info fw-bold">{{ 'Method 3 (Classic): Terminal CLI Command ($ asciinema play)' | translate }}</h5>
+                <p class="guide-text small mb-2">
+                    {{ 'When recording finishes, the absolute path of the .cast file is copied to clipboard. You can play it anytime in terminal using asciinema play command:' | translate }}
+                </p>
+                <div class="input-group w-100 mb-2">
+                    <span class="input-group-text font-monospace">$</span>
+                    <input type="text" class="form-control font-monospace" [value]="'asciinema play &quot;' + savePath + '/filename.cast&quot;'" readonly>
+                    <button class="btn btn-outline-secondary" (click)="copyCommand('asciinema play &quot;' + savePath + '/&quot;')">{{ 'Copy Command Example' | translate }}</button>
+                </div>
+                <div class="small guide-tip">
+                    {{ 'Note: During asciinema play execution, you can use Space (pause/play), f (2x speed), . (step frame).' | translate }}
+                </div>
             </div>
         </div>
 
-        <div class="card p-3 mb-3 guide-card" *ngIf="cliInfo">
+        <div class="card p-3 mb-4 guide-card" *ngIf="cliInfo">
             <div class="d-flex align-items-center mb-2">
                 <span class="badge" [class.bg-success]="cliInfo.installed" [class.bg-warning]="!cliInfo.installed">
                     {{ cliInfo.installed ? ('CLI Installed' | translate) + ' (' + cliInfo.version + ')' : ('CLI Not Installed' | translate) }}
@@ -243,6 +292,51 @@ import * as fs from 'fs'
                 <button class="btn btn-secondary btn-sm" (click)="checkCLI()">{{ 'Refresh CLI Status' | translate }}</button>
             </div>
         </div>
+
+        <!-- Section 5: Hotkeys & Reference Guide (Bottom Placement) -->
+        <h3 class="mt-4 mb-3">{{ 'Hotkeys & Reference Guide' | translate }}</h3>
+
+        <div class="card p-3 mb-4 guide-card">
+            <p class="guide-text small mb-3">
+                {{ 'Asciinema features can be controlled using 5 hotkeys below. To change or add hotkeys, go to Tabby Settings > Hotkeys and search for Asciinema.' | translate }}
+            </p>
+            <table class="table table-dark table-striped align-middle small mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 25%">{{ 'Feature' | translate }}</th>
+                        <th style="width: 25%">{{ 'Default Hotkey' | translate }}</th>
+                        <th style="width: 50%">{{ 'Description' | translate }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>{{ 'Start / Stop Recording (Toggle)' | translate }}</strong></td>
+                        <td><span class="badge bg-primary">Ctrl + Shift + R</span></td>
+                        <td>{{ 'Toggles recording state back and forth.' | translate }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>{{ 'Start Recording Only' | translate }}</strong></td>
+                        <td><span class="badge bg-secondary">{{ 'Unassigned (Custom)' | translate }}</span></td>
+                        <td>{{ 'Starts recording for the active terminal session.' | translate }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>{{ 'Stop Recording Only' | translate }}</strong></td>
+                        <td><span class="badge bg-secondary">{{ 'Unassigned (Custom)' | translate }}</span></td>
+                        <td>{{ 'Stops recording and saves to a .cast file.' | translate }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>{{ 'Play Last Recording in CLI' | translate }}</strong></td>
+                        <td><span class="badge bg-primary">Ctrl + Shift + P</span></td>
+                        <td>{{ 'Auto-types asciinema play command into terminal session.' | translate }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>{{ 'Open Settings & Help' | translate }}</strong></td>
+                        <td><span class="badge bg-secondary">{{ 'Unassigned (Custom)' | translate }}</span></td>
+                        <td>{{ 'Opens Asciinema settings tab immediately.' | translate }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     `,
     styles: [`
         :host {
@@ -254,7 +348,15 @@ import * as fs from 'fs'
             justify-content: space-between;
             align-items: center;
             padding: 12px 0;
-            border-bottom: 1px solid var(--bs-border-color);
+            border-bottom: 1px solid var(--bs-border-color, rgba(255, 255, 255, 0.15));
+        }
+        .sub-option-line {
+            background-color: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--bs-border-color, rgba(255, 255, 255, 0.15));
+        }
+        .form-line .header {
+            flex-grow: 1;
+            padding-right: 15px;
         }
         .form-line .title {
             font-weight: 600;
@@ -318,7 +420,7 @@ export class AsciinemaSettingsTabComponent implements OnInit {
     }
 
     get filenamePattern(): string {
-        return this.config.store.pluginConfig?.['asciinema']?.filenamePattern || '{host}_{date}'
+        return this.config.store.pluginConfig?.['asciinema']?.filenamePattern || '{date}_{host}'
     }
 
     set filenamePattern(val: string) {
@@ -340,6 +442,51 @@ export class AsciinemaSettingsTabComponent implements OnInit {
 
     set idleTimeLimit(val: number) {
         this.updatePluginConfig('idleTimeLimit', val)
+    }
+
+    get maxSingleFileSizeMB(): number {
+        const val = Number(this.config.store.pluginConfig?.['asciinema']?.maxSingleFileSizeMB)
+        return isNaN(val) || val <= 0 ? 8 : Math.min(val, 30)
+    }
+
+    set maxSingleFileSizeMB(val: number) {
+        const num = Math.max(1, Math.min(Number(val) || 8, 30))
+        this.updatePluginConfig('maxSingleFileSizeMB', num)
+    }
+
+    get enableFileSplitting(): boolean {
+        const val = this.config.store.pluginConfig?.['asciinema']?.enableFileSplitting
+        return val !== undefined ? Boolean(val) : true
+    }
+
+    set enableFileSplitting(val: boolean) {
+        this.updatePluginConfig('enableFileSplitting', val)
+    }
+
+    get maxSplitCount(): number {
+        const val = Number(this.config.store.pluginConfig?.['asciinema']?.maxSplitCount)
+        return isNaN(val) || val < 0 ? 0 : val
+    }
+
+    set maxSplitCount(val: number) {
+        const num = Math.max(0, Math.min(Number(val) || 0, 50))
+        this.updatePluginConfig('maxSplitCount', num)
+    }
+
+    get calculatedMaxParts(): number {
+        const total = this.maxStorageMB || 100
+        const single = this.maxSingleFileSizeMB || 8
+        return Math.max(1, Math.floor(total / single))
+    }
+
+    get maxStorageMB(): number {
+        const val = Number(this.config.store.pluginConfig?.['asciinema']?.maxStorageMB)
+        return isNaN(val) || val <= 0 ? 100 : val
+    }
+
+    set maxStorageMB(val: number) {
+        const num = Math.max(10, Number(val) || 100)
+        this.updatePluginConfig('maxStorageMB', num)
     }
 
     get savePath(): string {
@@ -556,6 +703,26 @@ export class AsciinemaSettingsTabComponent implements OnInit {
             this.platform.openPath(targetPath)
         } catch (e: any) {
             this.notifications.error(this.translate.instant('Open Folder Failed'), e.message)
+        }
+    }
+
+    downloadStandalonePlayer() {
+        try {
+            const targetDir = this.savePath
+            if (!fs.existsSync(targetDir)) {
+                fs.mkdirSync(targetDir, { recursive: true })
+            }
+
+            const targetFilePath = path.join(targetDir, 'asciinema-player.html')
+            fs.writeFileSync(targetFilePath, STANDALONE_PLAYER_HTML, 'utf8')
+
+            this.platform.setClipboard({ text: targetFilePath })
+            this.notifications.info(
+                this.translate.instant('Standalone HTML Player saved to save folder'),
+                targetFilePath,
+            )
+        } catch (e: any) {
+            this.notifications.error(this.translate.instant('Save Failed'), e.message || String(e))
         }
     }
 

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asciinema Standalone Web Player</title>
+  <!-- asciinema-player CDN (CSS & JS) -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/asciinema-player@3.7.1/dist/bundle/asciinema-player.css" />
+  <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.7.1/dist/bundle/asciinema-player.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent-color: #38bdf8;
+      --accent-hover: #0284c7;
+      --text-color: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .top-bar {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+    }
+
+    .lang-btn {
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.4rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .lang-btn:hover {
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .main-container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    #drop-zone {
+      width: 100%;
+      background: var(--card-bg);
+      border: 2px dashed var(--border-color);
+      border-radius: 1rem;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    #drop-zone:hover, #drop-zone.dragover {
+      border-color: var(--accent-color);
+      background: #182234;
+      transform: translateY(-2px);
+    }
+
+    #drop-zone h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    #drop-zone p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 1rem;
+      background: var(--accent-color);
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.5rem 1.25rem;
+      border-radius: 0.5rem;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+      color: #fff;
+    }
+
+    #file-name-display {
+      font-family: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      background: #334155;
+      padding: 0.3rem 0.8rem;
+      border-radius: 0.4rem;
+      margin-top: 0.8rem;
+      display: inline-block;
+    }
+
+    #player-wrapper {
+      width: 100%;
+      display: none;
+      background: #000;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border-color);
+    }
+
+    .asciinema-player-wrapper {
+      width: 100% !important;
+      font-family: 'Cascadia Code', Consolas, 'Courier New', monospace !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <button id="lang-toggle-btn" class="lang-btn" onclick="toggleLanguage()">Language: 한국어</button>
+  </div>
+
+  <header>
+    <h1 id="i18n-title">Asciinema Standalone Web Player</h1>
+    <p id="i18n-subtitle">Play .cast session recordings instantly in any browser across Windows, Mac, and Linux without CLI dependencies.</p>
+  </header>
+
+  <div class="main-container">
+    <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <h3 id="i18n-drop-title">Drag & Drop .cast File Here</h3>
+      <p id="i18n-drop-desc">Or click to select a recording file (.cast)</p>
+      <button type="button" class="btn" id="i18n-select-btn">Select File</button>
+      <div id="file-name-display" style="display: none;"></div>
+    </div>
+    <input type="file" id="file-input" accept=".cast" style="display: none;">
+
+    <div id="player-wrapper">
+      <div id="player-target"></div>
+    </div>
+  </div>
+
+  <script>
+    const i18nData = {
+      en: {
+        title: "Asciinema Standalone Web Player",
+        subtitle: "Play .cast session recordings instantly in any browser across Windows, Mac, and Linux without CLI dependencies.",
+        dropTitle: "Drag & Drop .cast File Here",
+        dropDesc: "Or click to select a recording file (.cast)",
+        selectBtn: "Select File",
+        langBtn: "Language: 한국어",
+        parseError: "Failed to parse .cast file: "
+      },
+      ko: {
+        title: "Asciinema 독립형 웹 플레이어",
+        subtitle: "Windows, Mac, Linux 환경에 관계없이 브라우저에서 .cast 녹화 세션을 즉시 재생합니다.",
+        dropTitle: "여기에 .cast 파일을 드래그 앤 드롭하세요",
+        dropDesc: "또는 클릭하여 녹화 파일(.cast)을 선택하세요",
+        selectBtn: "파일 선택",
+        langBtn: "Language: English",
+        parseError: ".cast 파일 파싱 실패: "
+      }
+    };
+
+    let currentLang = navigator.language && navigator.language.startsWith('ko') ? 'ko' : 'en';
+
+    function applyLanguage(lang) {
+      currentLang = lang;
+      const t = i18nData[lang];
+      document.getElementById('i18n-title').textContent = t.title;
+      document.getElementById('i18n-subtitle').textContent = t.subtitle;
+      document.getElementById('i18n-drop-title').textContent = t.dropTitle;
+      document.getElementById('i18n-drop-desc').textContent = t.dropDesc;
+      document.getElementById('i18n-select-btn').textContent = t.selectBtn;
+      document.getElementById('lang-toggle-btn').textContent = t.langBtn;
+      document.documentElement.lang = lang;
+    }
+
+    function toggleLanguage() {
+      applyLanguage(currentLang === 'en' ? 'ko' : 'en');
+    }
+
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const playerWrapper = document.getElementById('player-wrapper');
+    const playerTarget = document.getElementById('player-target');
+    const fileNameDisplay = document.getElementById('file-name-display');
+
+    function loadAndPlayCast(file) {
+      if (!file) return;
+
+      fileNameDisplay.textContent = `[File] ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      fileNameDisplay.style.display = 'inline-block';
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const castContent = e.target.result;
+
+        playerTarget.innerHTML = '';
+        playerWrapper.style.display = 'block';
+
+        try {
+          AsciinemaPlayer.create({ data: castContent }, playerTarget, {
+            autoPlay: true,
+            preload: true,
+            fit: 'width',
+            terminalFontSize: '15px',
+            terminalFontFamily: "'Cascadia Code', Consolas, 'Courier New', monospace",
+            theme: 'asciinema'
+          });
+
+          playerWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (err) {
+          alert(i18nData[currentLang].parseError + err.message);
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('dragover');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files && files.length > 0) {
+        loadAndPlayCast(files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        loadAndPlayCast(e.target.files[0]);
+      }
+    });
+
+    // Initialize Language
+    applyLanguage(currentLang);
+  </script>
+</body>
+</html>

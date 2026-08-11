@@ -8,7 +8,7 @@ import { registerPluginTranslations } from './i18n'
 export class AsciinemaSettingsTabProvider extends SettingsTabProvider {
     id = 'asciinema'
     icon = 'play'
-    title = ''
+    title = 'Asciinema Recording'
     weight = 10
 
     constructor (private translate: TranslateService) {

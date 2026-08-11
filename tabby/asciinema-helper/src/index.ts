@@ -11,6 +11,7 @@ import { AsciinemaHotkeyProvider } from './hotkeyProvider'
 import { AsciinemaConfigProvider } from './configProvider'
 import { AsciinemaSettingsTabProvider } from './settingsTabProvider'
 import { AsciinemaSettingsTabComponent } from './components/settingsTab.component'
+import { AsciinemaSessionPickerModalComponent } from './components/sessionPickerModal.component'
 
 @NgModule({
     imports: [
@@ -29,6 +30,7 @@ import { AsciinemaSettingsTabComponent } from './components/settingsTab.componen
     ],
     declarations: [
         AsciinemaSettingsTabComponent,
+        AsciinemaSessionPickerModalComponent,
     ],
 })
 export default class AsciinemaModule { }
