@@ -1,5 +1,17 @@
 # Customize Grafana
 
+<p align="left">
+  <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/custom_login/custom_login.png" alt="Grafana Custom Login Preview" width="40%" />
+</p>
+
+### 실행 방법
+
+root 권한(sudo)으로 실행합니다.
+
+```bash
+sudo bash customize_grafana_*.sh
+```
+
 ### 주의 사항 및 라이선스
 
 - **라이선스 및 활용 범위**: Grafana OSS(AGPLv3) 환경에서 사내 내부 모니터링 목적으로 정적 파일(JS 번들, 이미지)이나 문구를 수정하여 사용하는 것은 라이선스 위반이 아닙니다.
@@ -8,13 +20,11 @@
 
 ### 주요 기능
 
-- sudo 권한 체크: 스크립트 실행 시 즉시 확인
-- Grafana 설치 확인: systemctl과 which 명령어로 이중 확인
-- 원본 이미지 백업: 사용자 선택에 따라 백업 생성
-- 로그인 문구 선택: "Integrated Monitoring", "E2E Observability" 또는 사용자 직접 입력
-- 안전한 파일 교체: 각 단계별 오류 대응
-- 로그 종류 표시: 색상별 로그 메시지
-- 서비스 재시작: 설정 변경 후 프로세스 재시작 및 상태 확인
+- **운영 장애 방지 안전망**: 스크립트 수행 단계별 오류 검증 및 자산 교체 전 롤백용 원본 이미지 백업 생성
+- **환경 및 권한 즉시 검증**: sudo 권한 및 Grafana 설치 여부(systemctl / which) 이중 검증
+- **로그인 문구 맞춤 설정**: "Integrated Monitoring", "E2E Observability" 또는 사용자 직접 입력 지원
+- **시각적 프로세스 로깅**: 작업 상태 및 예외 상황을 색상별 구분 로그로 명확히 표시
+- **서비스 재시작 및 상태 확인**: 설정 변경 후 Grafana 데몬 재시작 및 헬스 체크
 
 ### 폴더 구조
 

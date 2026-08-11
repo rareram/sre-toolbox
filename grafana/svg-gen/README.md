@@ -1,5 +1,10 @@
 # SVG Converter & Compositor
 
+<p align="left">
+  <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/svg-gen/svg-gen.png" alt="SVG Gen Interface Preview" width="40%" />
+</p>
+
+
 여러 이미지 파일(PNG, JPG, SVG, WebP)을 캔버스 상에 배치 및 합성하여 단일 SVG 파일로 변환하는 데스크톱 GUI 애플리케이션입니다.
 
 Grafana 로그인 화면 배경(`g8_login_dark.svg` 등) 제작 시 규격에 맞게 로고와 데코 이미지를 정밀하게 배치하여 하나의 SVG 파일로 내보낼 때 사용합니다.

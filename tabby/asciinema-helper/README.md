@@ -1,52 +1,47 @@
 # Tabby Asciinema Helper Plugin
 
-**Tabby Asciinema Helper** is a lightweight, native session recorder plugin for Tabby Terminal. Beyond standard terminal tabs, it empowers SREs, DevOps engineers, and developers to capture **Headless Target Sessions**—including **Herdr Multi-Agent Orchestrations**, **Background Docker Container Logs**, and **Detached Tmux Sessions**—into standard `.cast` format cleanly without external CLI requirements or shell screen clutter.
+Tabby Asciinema Helper is a native session recorder plugin for Tabby Terminal. It captures active terminal sessions as well as **Headless Target Sessions**—such as background Docker container logs (`docker logs -f`), detached Tmux sessions (`tmux attach -t`), and Herdr Multi-Agent panes (`herdr attach -t`)—into standard `.cast` format files without screen clutter.
 
 ---
 
 ## Screenshots
 
 <p align="left">
-  <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_1.png" alt="Session Discovery & Custom Record Modal" width="480" />
-  <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_2.png" alt="Plugin Settings & Sensitive Redaction Tool" width="480" />
+  <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_1.png" alt="Session Discovery & Custom Record Modal" width="40%" />
+  <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_2.png" alt="Plugin Settings & Sensitive Redaction Tool" width="40%" />
 </p>
 
 ---
 
-## Key Highlights & Superpowers
+## Key Features
 
-* **Headless & Background Target Session Recording**: Seamlessly discover and attach to headless background processes, multi-agent panes (`herdr attach -t`), background containers (`docker logs -f`), and detached multiplexer sessions (`tmux attach -t`) without polluting your terminal screen.
-* **Herdr Multi-Agent Orchestration Recording**: Capture complex multi-agent reasoning, tool invocations, and inter-agent workflows within Herdr Spaces and individual Agent Panes.
-* **Pure Native Engine**: No local `asciinema` CLI binary required for recording. Uses Tabby's internal terminal output streams for direct `.cast` file generation.
-* **Sensitive Data Masking**: Interactive scanning and redaction of IP addresses, API tokens, and passwords before sharing recordings.
-* **Chronological File Sorting**: Default `{date}_{host}` filename pattern for clean file sorting, single file auto-splitting (8MB limit), and storage limit auto-cleanup.
-* **Standalone HTML Web Player**: Generate self-contained HTML players to view `.cast` recordings in any web browser without CLI tools.
+### English
+* **Headless Target Session Recording**: Discover and attach directly to background process streams (Docker logs, Tmux, Herdr multi-agent panes) without occupying or polluting your active terminal screen.
+* **Direct .cast File Generation**: No external `asciinema` CLI binary is required for recording. Uses Tabby's internal terminal output streams for direct `.cast` file generation.
+* **Sensitive Data Redaction**: Interactive scanning and masking of IP addresses, API tokens, and credentials preserving 1:1 terminal display width.
+* **Storage & File Limits**: Supports ISO-8601 chronological file naming (`{date}_{host}`), single file size limits (default 8 MB), automatic file splitting, and storage capacity auto-cleanup (default 100 MB).
+* **Standalone HTML Player**: Generates self-contained HTML files ([`docs/asciinema-helper/asciinema-player.html`](https://github.com/rareram/sre-toolbox/blob/main/docs/asciinema-helper/asciinema-player.html)) for viewing `.cast` recordings in any web browser when CLI is not installed.
 
----
-
-## 주요 강점 및 핵심 기능 (Korean Summary)
-
-* **Headless & 백그라운드 대상 세션 녹화**: 화면에 직접 띄우지 않은 Headless 멀티에이전트, 백그라운드 Docker 컨테이너, 디태치된 Tmux 세션을 화면 오염 없이 선명하게 `.cast` 포맷으로 캡처.
-* **Herdr 멀티에이전트 세션 녹화**: Herdr의 스페이스(Space) 및 개별 에이전트 페인(Pane)을 자동으로 탐색하여 에이전트 간 대화 및 실행 과정을 `.cast` 포맷으로 녹화.
-* **순수 순정 내장 엔진**: 외부 `asciinema` CLI 설치 없이 Tabby 터미널 내부 엔진만으로 `.cast` 포맷 녹화본 직접 생성.
-* **민감정보 자동 마스킹**: IP, API 토큰, 비밀번호 등을 1:1 너비 보존 문자(`*`, `#`)로 안전하게 치환.
-* **날짜 우선 정렬 `{date}_{host}`**: ISO-8601 시선순 자동 정렬, 8MB 파일 자동 분할, 용량 제한 초과 시 자동 정돈.
-* **단독 실행형 HTML 플레이어**: CLI 미설치 환경에서도 브라우저에서 바로 감상할 수 있는 무설치 HTML 플레이어 생성.
+### Korean
+* **Headless 백그라운드 세션 녹화**: 화면 뷰포트를 오염시키지 않고 백그라운드 Docker 컨테이너 로그, Tmux 세션, Herdr 멀티에이전트 페인 스트림에 직접 어태치하여 녹화.
+* **.cast 포맷 자체 생성**: 녹화를 위한 별도의 `asciinema` CLI 설치 불필요. Tabby 내부 터미널 입출력 스트림을 통해 `.cast` 포맷 파일 직접 생성.
+* **민감정보 마스킹**: IP 주소, API 토큰, 비밀번호 등을 정규식으로 감지하고 1:1 터미널 표시 너비를 보존하여 마스킹.
+* **용량 및 파일 저장 제어**: ISO-8601 날짜 우선 정렬(`{date}_{host}`), 단일 파일 용량 제한(기본 8 MB), 자동 파일 분할 및 저장소 자동 정돈(기본 100 MB).
+* **단독 실행형 HTML 플레이어**: CLI 미설치 환경에서도 웹 브라우저에서 `.cast` 녹화본을 바로 감상할 수 있는 단독 실행형 HTML 플레이어([`docs/asciinema-helper/asciinema-player.html`](https://github.com/rareram/sre-toolbox/blob/main/docs/asciinema-helper/asciinema-player.html)) 파일 제공.
 
 ---
 
 ## Quick Start Guide
 
-### 1. Quick Terminal Recording (Ctrl+Shift+R)
-* Click the **Record Button (Quick Record)** on the top toolbar or press `Ctrl+Shift+R`.
-* A 10-second periodic status toast will keep you informed of active recording sizes.
-* Click again to stop and auto-copy the `.cast` file path to your clipboard.
+### 1. Quick Terminal Recording (`Ctrl+Shift+R`)
+* Press `Ctrl+Shift+R` or click the **Record Button** on the top toolbar to toggle recording for the active terminal tab.
+* Upon stopping, the absolute file path of the `.cast` recording is automatically copied to your clipboard.
 
-### 2. Session Discovery & Custom Record (Twin Triangles)
-* Click the **Session Discovery Button** on the toolbar.
-* Select your target: **Docker Container**, **Tmux Session**, or **Herdr Session**.
-* Features **Clean Fast Scan** (scans active sessions instantly without polluting your terminal screen).
-* Set optional one-off limits (e.g. 10-minute timer limit or custom file size).
+### 2. Headless Session Discovery & Custom Recording
+* Click the **Session Discovery Button** (Twin Triangle icon) on the toolbar.
+* Select the target headless process type: **Docker Container**, **Tmux Session**, or **Herdr Session**.
+* The plugin scans active background sessions without executing disruptive terminal commands.
+* Set optional one-off parameters (e.g. recording timer limit, custom file size limit) before attaching.
 
 ---
 
@@ -55,25 +50,25 @@
 | Action | Default Hotkey | Description |
 | :--- | :--- | :--- |
 | **Start / Stop Recording** | `Ctrl+Shift+R` | Toggle recording for the active terminal session |
-| **Play Last Recording** | `Ctrl+Shift+P` | Auto-types `asciinema play` in terminal |
+| **Play Last Recording** | `Ctrl+Shift+P` | Execute `asciinema play` in active terminal |
 | **Start Recording Only** | *Unassigned* | Explicit start recording command |
 | **Stop Recording Only** | *Unassigned* | Explicit stop recording command |
-| **Open Settings & Help** | *Unassigned* | Opens Asciinema settings tab immediately |
+| **Open Settings & Help** | *Unassigned* | Open Asciinema plugin settings tab |
 
 ---
 
-## Configuration
+## Configuration Options
 
-Access settings via `Tabby Settings` > `Plugins` > `Asciinema` or `Asciinema Settings Tab`:
+Access configuration via `Tabby Settings` > `Plugins` > `Asciinema`:
 
-* **Filename Pattern**: Default `{date}_{host}` (supports `{date}`, `{host}`, `{prefix}`, `{title}`).
-* **Single File Limit**: Default `8 MB` (Max `30 MB`).
-* **Auto-Split Files**: Automatically split into `_2.cast`, `_3.cast` when single file limit is reached.
-* **Storage Limit**: Default `100 MB` total folder capacity (auto-cleans oldest files).
+* **Filename Pattern**: Default `{date}_{host}` (Supported variables: `{date}`, `{host}`, `{prefix}`, `{title}`).
+* **Single File Limit**: Default `8 MB` (Maximum `30 MB`).
+* **Auto-Split Files**: Automatically splits recordings into consecutive files (`_2.cast`, `_3.cast`) when size limit is reached.
+* **Storage Limit**: Default `100 MB` total directory capacity (removes oldest files when full).
 * **Sensitive Keywords**: Comma-separated list for automatic masking (e.g. `password,token,secret`).
 
 ---
 
 ## License
 
-MIT License © SRE Toolbox
+MIT License © rareram

@@ -50,8 +50,8 @@ python 5.user_mapping_rule.py
 ## 주요 지원 정규화 패턴
 
 - **이메일 주소 전용**: `user@example.com`
-- **사번/계정 ID 전용**: `sksdu_1234`
-- **도메인\계정 형식**: `COMPANY\sksdu_3243`
+- **사번/계정 ID 전용**: `emp_1234`
+- **도메인\계정 형식**: `COMPANY\emp_3243`
 - **단일 이름 형식**: 한글 이름(`홍길동`), 영문 이름(`John Doe`)
 - **엑셀 매크로 지원**: Excel 환경 사용자를 위한 정규식 추출 코드(`keyword_extraction.vb`) 제공
 

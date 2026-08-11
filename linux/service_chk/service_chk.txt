@@ -1,0 +1,17 @@
+⚡ 서비스 상태 (마지막 업데이트: Tue Aug 11 15:43:35 KST 2026)
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+ ▪ open-webui           docker   [0;31m중지됨[0m
+ ▪ promtail             binary   [0;31m중지됨[0m
+ ▪ ollama               binary   [0;31m중지됨[0m
+ ▪ node-exporter        binary   [0;31m중지됨[0m
+ ▪ grafana              system   [0;31m중지됨[0m
+ ▪ prometheus           system   [0;31m중지됨[0m
+ ▪ mysql                system   [0;31m중지됨[0m
+ ▪ rsyslog              version  [1;34mline[0m
+ ▪ openssl              version  [1;34m3.3.6[0m
+ ▪ python3              version  [1;34m3.13.3[0m
+ ▪ java                 version  [1;34m25.0.2[0m
+ ▪ node.js              version  [1;34m./serice_chk_time.sh: line 53: node: command not found[0m
+ ▪ docker               version  [1;34m53:[0m
+ ▪ mysql                version  [1;34m53:[0m
+════════════════════════════════════════════════════════════════════

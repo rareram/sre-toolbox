@@ -13,8 +13,7 @@
   ],
   "host_permissions": [
     "http://localhost:3000/*",
-    "http://192.168.236.190:3000/*",
-    "https://sqms.skshieldus.com:3000/*",
+    "https://grafana.example.com/*",
     "*://teams.live.com/*",
     "*://teams.microsoft.com/*"
   ],
@@ -26,7 +25,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost:3000/*", "http://192.168.236.190:3000/*", "https://sqms.skshieldus.com:3000/*"],
+      "matches": ["http://localhost:3000/*", "https://grafana.example.com/*"],
       "js": ["content-grafana.js"]
     },
     {
@@ -36,6 +35,6 @@
   ],
   "web_accessible_resources": [{
     "resources": ["html2canvas.min.js"],
-    "matches": ["http://localhost:3000/*", "http://192.168.236.190:3000/*", "https://sqms.skshieldus.com:3000/*"]
+    "matches": ["http://localhost:3000/*", "https://grafana.example.com/*"]
   }]
 }

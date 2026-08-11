@@ -19,7 +19,13 @@
 - **`get_userinfo`**: 유저의 권한 목록 조회 (누가 어떤 대시보드와 폴더를 볼 수 있는지)
 - **`grafana2teams`**: 그래프 화면을 캡처해서 MS Teams의 특정 채널로 바로 공유
 - **`custom_login`**: Grafana 로그인 화면 배경,로고 등을 준비된 이미지로 교체
+  <p align="left">
+    <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/custom_login/custom_login.png" alt="Grafana Custom Login Preview" width="40%" />
+  </p>
 - **`svg-gen`**: 이미지(png,jpg 등)를 레이어배치 및 SVG로 변환하며 Grafana 로그인 배경 생성
+  <p align="left">
+    <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/svg-gen/svg-gen.png" alt="SVG Gen Interface Preview" width="40%" />
+  </p>
 
 ### 4. Jira 도구 (`jira/`)
 - **`01_issues_export`**: 특정 프로젝트, 특정 상태의 Jira 티켓을 추출해 csv로 저장
@@ -40,8 +46,8 @@
 ### 8. Tabby 터미널 플러그인 (`tabby/`)
 - **`asciinema-helper`**: 서버 CLI 및 Headless 대상 세션(Herdr 멀티에이전트, Docker, Tmux)의 작업 과정을 영상처럼 녹화하는 Asciinema 헬퍼 플러그인.
   <p align="left">
-    <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_1.png" alt="Session Discovery Modal" width="480" />
-    <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_2.png" alt="Plugin Settings Tab" width="480" />
+    <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_1.png" alt="Session Discovery Modal" width="40%" />
+    <img src="https://raw.githubusercontent.com/rareram/sre-toolbox/main/docs/asciinema-helper/asciinema_2.png" alt="Plugin Settings Tab" width="40%" />
   </p>
 
 ---

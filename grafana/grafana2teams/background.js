@@ -8,7 +8,7 @@ chrome.runtime.onInstalled.addListener(() => {
             id: "sendToTeams",
             title: "Grafana 항목을 Teams로 보내기",
             contexts: ["all"],
-            documentUrlPatterns: ["http://localhost:3000/*", "http://192.168.236.190:3000/*", "https://sqms.skshieldus.com:3000/*"]
+            documentUrlPatterns: ["http://localhost:3000/*", "https://grafana.example.com/*"]
         }, () => {
             if (chrome.runtime.lastError) {
                 console.error('Context menu creation error:', chrome.runtime.lastError);

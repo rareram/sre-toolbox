@@ -1,0 +1,7 @@
+open-webui:중지됨:2026-08-11
+promtail:중지됨:2026-08-11
+ollama:중지됨:2026-08-11
+node-exporter:중지됨:2026-08-11
+grafana:중지됨:2026-08-11
+prometheus:중지됨:2026-08-11
+mysql:중지됨:2026-08-11

@@ -135,8 +135,8 @@ Function GetPatternType(value As String) As String
         Exit Function
     End If
     
-    ' sksdu_ 형식 확인
-    If InStr(1, value, "sksdu_", vbTextCompare) > 0 Then
+    ' emp_ 형식 확인
+    If InStr(1, value, "emp_", vbTextCompare) > 0 Then
         GetPatternType = "사번ID"
         Exit Function
     End If

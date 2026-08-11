@@ -42,10 +42,10 @@ def create_sample_mapping_file():
         with open(MAPPING_RULES, 'w', encoding='utf-8-sig', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["AS-IS", "TO-BE", "비고"])
-            writer.writerow(["고경학B", "고경학(sksdu_2832)", "예시 - ID가 다른 경우"])
-            writer.writerow(["sksdu_3779", "김철수(sksdu_3779)", "예시 - 이름 누락"])
-            writer.writerow(["ADTKOREA\\sksdu_1234", "이영희(sksdu_1234)", "예시 - 도메인 포함"])
-            writer.writerow(["test@company.com", "박지훈(sksdu_4567)", "예시 - 이메일만 있는 경우"])
+            writer.writerow(["홍길동A", "홍길동(emp_2832)", "예시 - ID가 다른 경우"])
+            writer.writerow(["emp_3779", "김철수(emp_3779)", "예시 - 이름 누락"])
+            writer.writerow(["COMPANY\\emp_1234", "이영희(emp_1234)", "예시 - 도메인 포함"])
+            writer.writerow(["test@example.com", "박지훈(emp_4567)", "예시 - 이메일만 있는 경우"])
         return True
     except Exception as e:
         print(f"❌ 샘플 매핑 파일 생성 실패: {e}")
