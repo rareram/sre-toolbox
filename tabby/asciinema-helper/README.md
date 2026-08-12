@@ -1,6 +1,6 @@
 # Tabby Asciinema Helper Plugin
 
-Tabby Asciinema Helper is a native session recorder plugin for Tabby Terminal. It captures active terminal sessions as well as **Headless Target Sessions**—such as background Docker container logs (`docker logs -f`), detached Tmux sessions (`tmux attach -t`), and Herdr Multi-Agent panes (`herdr attach -t`)—into standard `.cast` format files without screen clutter.
+Tabby Asciinema Helper is a native session recorder plugin for Tabby Terminal. It captures active terminal sessions as well as **Headless Target Sessions**—such as background Docker container logs (`docker logs -f`), detached Tmux sessions (`tmux attach -t`), and Herdr Multi-Agent sessions (`herdr session attach`)—into standard `.cast` format files without screen clutter.
 
 ---
 

@@ -7,7 +7,7 @@ import * as path from 'path'
 import * as os from 'os'
 import { execFile } from 'child_process'
 import { detectAsciinemaCLI } from './cliDetector'
-import { generateMaskReplacement } from './maskingScanner'
+import { generateMaskReplacement, replacePreservingAnsi } from './maskingScanner'
 import { registerPluginTranslations } from '../i18n'
 
 export interface AsciinemaHeader {
@@ -21,14 +21,22 @@ export interface AsciinemaHeader {
     idle_time_limit?: number
 }
 
+export interface RecordingOptions {
+    customFileLimitMB?: number
+    customMaxSplits?: number
+}
+
 export interface RecordingSession {
     tab: BaseTerminalTabComponent<any>
     startTime: number
     events: Array<[number, string, string]>
     header: AsciinemaHeader
     customPrefix?: string
+    customFileLimitMB?: number
+    customMaxSplits?: number
     subscriptionOutput?: Subscription
     subscriptionResize?: Subscription
+    subscriptionDestroyed?: Subscription
     livenessTimer?: any
 }
 
@@ -76,17 +84,8 @@ export class AsciinemaRecorderService {
         private translate: TranslateService,
     ) {
         registerPluginTranslations(this.translate)
-        
-        // 1. Tab closed shield: Safety flush when individual tab closes
-        this.app.tabsChanged$.subscribe(() => {
-            for (const [tab] of Array.from(this.activeRecordings.entries())) {
-                if (!this.app.tabs.includes(tab as any)) {
-                    this.stopRecording(tab)
-                }
-            }
-        })
 
-        // 2. Application shutdown shield: Safety flush when Tabby application quits
+        // Application shutdown shield: Safety flush when Tabby application quits
         if (typeof window !== 'undefined') {
             window.addEventListener('beforeunload', () => {
                 for (const [tab] of Array.from(this.activeRecordings.entries())) {
@@ -210,7 +209,7 @@ export class AsciinemaRecorderService {
         this.app.openNewTab({ type: 'settings', activeTab: 'asciinema' } as any)
     }
 
-    startRecording (tab: BaseTerminalTabComponent<any>, customPrefix?: string): void {
+    startRecording (tab: BaseTerminalTabComponent<any>, customPrefix?: string, options?: RecordingOptions): void {
         if (this.isRecording(tab)) {
             return
         }
@@ -253,6 +252,8 @@ export class AsciinemaRecorderService {
             events: [],
             header,
             customPrefix,
+            customFileLimitMB: options?.customFileLimitMB,
+            customMaxSplits: options?.customMaxSplits,
         }
 
         // 1. Output stream capture
@@ -271,7 +272,14 @@ export class AsciinemaRecorderService {
             })
         }
 
-        // 3. Periodic 10-second Liveness & Size Status Notification
+        // 3. Tab destroyed$ stream capture for safe auto-flush when tab closes
+        if ((tab as any).destroyed$) {
+            session.subscriptionDestroyed = (tab as any).destroyed$.subscribe(() => {
+                this.stopRecording(tab)
+            })
+        }
+
+        // 4. Periodic 10-second Liveness & Size Status Notification
         session.livenessTimer = setInterval(() => {
             if (this.isRecording(tab)) {
                 const curSize = this.getRecordingCurrentSizeMB(tab)
@@ -296,6 +304,7 @@ export class AsciinemaRecorderService {
         // Unsubscribe & clear liveness timer
         session.subscriptionOutput?.unsubscribe()
         session.subscriptionResize?.unsubscribe()
+        session.subscriptionDestroyed?.unsubscribe()
         if (session.livenessTimer) {
             clearInterval(session.livenessTimer)
             session.livenessTimer = null
@@ -323,10 +332,10 @@ export class AsciinemaRecorderService {
             }
 
             pattern = pattern
-                .replace(/\{host\}|\%host\%/g, hostSanitized)
-                .replace(/\{date\}|\%date\%/g, dateStr)
-                .replace(/\{prefix\}|\%prefix\%/g, prefixStr)
-                .replace(/\{title\}|\%title\%/g, titleStr)
+                .replace(/\{host\}|\[host\]|\%host\%/g, hostSanitized)
+                .replace(/\{date\}|\[date\]|\%date\%/g, dateStr)
+                .replace(/\{prefix\}|\[prefix\]|\%prefix\%/g, prefixStr)
+                .replace(/\{title\}|\[title\]|\%title\%/g, titleStr)
                 .replace(/[/\\?%*:|"<> ]/g, '-')
                 .replace(/-+/g, '-')
 
@@ -364,9 +373,7 @@ export class AsciinemaRecorderService {
                 if (keywords.length > 0 && event[1] === 'o') {
                     for (const kw of keywords) {
                         if (kw) {
-                            const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                            const replacement = generateMaskReplacement(kw, maskChar)
-                            text = text.replace(new RegExp(escaped, 'g'), replacement)
+                            text = replacePreservingAnsi(text, kw, maskChar)
                         }
                     }
                 }
@@ -374,7 +381,10 @@ export class AsciinemaRecorderService {
             }
 
             const headerStr = JSON.stringify(session.header)
-            const maxBytes = this.maxSingleFileSizeMB * 1024 * 1024
+            const effectiveMaxMB = (session.customFileLimitMB && session.customFileLimitMB > 0) ? session.customFileLimitMB : this.maxSingleFileSizeMB
+            const effectiveMaxSplits = (session.customMaxSplits !== undefined && session.customMaxSplits >= 0) ? session.customMaxSplits : this.maxSplitCount
+
+            const maxBytes = effectiveMaxMB * 1024 * 1024
             const totalBytes = Buffer.byteLength(headerStr, 'utf8') + eventLines.reduce((acc, line) => acc + Buffer.byteLength(line, 'utf8') + 1, 0)
 
             if (totalBytes > maxBytes && this.enableFileSplitting) {
@@ -382,18 +392,26 @@ export class AsciinemaRecorderService {
                 let currentLines: string[] = [headerStr]
                 let currentBytes = Buffer.byteLength(headerStr, 'utf8') + 1
                 const savedFiles: string[] = []
-                const limit = this.maxSplitCount
+                const limit = effectiveMaxSplits
 
                 for (const eline of eventLines) {
                     const lineBytes = Buffer.byteLength(eline, 'utf8') + 1
                     if (currentLines.length > 1 && (currentBytes + lineBytes) > maxBytes) {
                         if (limit > 0 && partIndex >= limit) {
+                            // 01 / 11 케이스: Split 개수 제한 도달 시 즉시 분할 중단 (Stop)
                             break
                         }
-                        const suffix = partIndex === 1 ? '' : `_${partIndex}`
-                        const partFilePath = path.join(outputDir, `${baseFilename}${suffix}.cast`)
+                        let suffix = partIndex === 1 ? '' : `_${partIndex}`
+                        let partFilePath = path.join(outputDir, `${baseFilename}${suffix}.cast`)
+                        let splitCounter = 1
+                        while (fs.existsSync(partFilePath)) {
+                            suffix = partIndex === 1 ? `_${splitCounter}` : `_${partIndex}_${splitCounter}`
+                            partFilePath = path.join(outputDir, `${baseFilename}${suffix}.cast`)
+                            splitCounter++
+                        }
                         fs.writeFileSync(partFilePath, currentLines.join('\n') + '\n', 'utf8')
                         savedFiles.push(partFilePath)
+                        this.cleanupOldRecordings(outputDir)
 
                         partIndex++
                         currentLines = [headerStr, eline]
@@ -405,20 +423,27 @@ export class AsciinemaRecorderService {
                 }
 
                 if (currentLines.length > 1 && (limit === 0 || partIndex <= limit)) {
-                    const suffix = partIndex === 1 ? '' : `_${partIndex}`
-                    const partFilePath = path.join(outputDir, `${baseFilename}${suffix}.cast`)
+                    let suffix = partIndex === 1 ? '' : `_${partIndex}`
+                    let partFilePath = path.join(outputDir, `${baseFilename}${suffix}.cast`)
+                    let splitCounter = 1
+                    while (fs.existsSync(partFilePath)) {
+                        suffix = partIndex === 1 ? `_${splitCounter}` : `_${partIndex}_${splitCounter}`
+                        partFilePath = path.join(outputDir, `${baseFilename}${suffix}.cast`)
+                        splitCounter++
+                    }
                     fs.writeFileSync(partFilePath, currentLines.join('\n') + '\n', 'utf8')
                     savedFiles.push(partFilePath)
+                    this.cleanupOldRecordings(outputDir)
                 }
 
                 this.lastRecordedFilePath = savedFiles[0] || filePath
-                this.cleanupOldRecordings(outputDir)
                 this.platform.setClipboard({ text: savedFiles[0] || filePath })
 
                 const title = this.translate.instant('Asciinema recording finished & saved')
+                const limitNote = limit > 0 && partIndex >= limit ? `\n(${this.translate.instant('Reached max split limit')}: ${limit})` : ''
                 this.notifications.info(
                     title,
-                    `${this.translate.instant('Save Path:')}\n${savedFiles[0]} (+${savedFiles.length - 1} split parts)\n\n$ asciinema play "${savedFiles[0]}"`,
+                    `${this.translate.instant('Save Path:')}\n${savedFiles[0]} (+${savedFiles.length - 1} split parts)${limitNote}\n\n$ asciinema play "${savedFiles[0]}"`,
                 )
                 return
             }

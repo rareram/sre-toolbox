@@ -237,4 +237,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Grafana custom_login script runtime files
+grafana/custom_login/active_theme.txt
+grafana/custom_login/backup/
+
+
 

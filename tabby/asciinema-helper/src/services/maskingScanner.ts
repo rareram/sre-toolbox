@@ -95,8 +95,9 @@ export function scanSensitiveData(content: string): DetectedItem[] {
  */
 export function getTerminalWidth(str: string): number {
     let width = 0
-    for (const char of str) {
-        const code = char.charCodeAt(0)
+    const chars = Array.from(str)
+    for (const char of chars) {
+        const code = char.codePointAt(0) || 0
         if (
             (code >= 0x1100 && code <= 0x11ff) || // 한글 자모
             (code >= 0x3130 && code <= 0x318f) || // 한글 호환 자모
@@ -104,7 +105,8 @@ export function getTerminalWidth(str: string): number {
             (code >= 0x4e00 && code <= 0x9fff) || // 한자 (CJK Unified Ideographs)
             (code >= 0x3400 && code <= 0x4dbf) || // CJK Extension A
             (code >= 0xf900 && code <= 0xfaff) || // CJK Compatibility Ideographs
-            (code >= 0xff01 && code <= 0xff60)    // Full-width ASCII / Punctuation
+            (code >= 0xff01 && code <= 0xff60) || // Full-width ASCII / Punctuation
+            (code >= 0x1f300 && code <= 0x1f9ff)  // Emojis / Symbols
         ) {
             width += 2
         } else {
@@ -134,15 +136,21 @@ export function replacePreservingAnsi(text: string, kw: string, replacementChar:
 
     const trimmedKw = kw.trim()
     const escapedKw = trimmedKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-    // 1. Fast path: 단순 replacement 시도 (ANSI 코드가 키워드 내부에 끼어있지 않은 일반적인 경우)
     const simpleRegex = new RegExp(escapedKw, 'g')
-    if (simpleRegex.test(text)) {
+
+    // 키워드가 텍스트에 포함되어 있지 않은 경우 즉시 반환
+    if (!simpleRegex.test(text)) {
+        return text
+    }
+
+    // 1. Fast path: text 내 ANSI 코드(\x1b)가 없는 경우 단순 치환
+    const hasAnsi = /\x1b/.test(text)
+    if (!hasAnsi) {
         const replacement = generateMaskReplacement(trimmedKw, replacementChar)
         return text.replace(simpleRegex, replacement)
     }
 
-    // 2. Slow path: ANSI 코드가 단어 중간에 분할 끼어들어간 경우 정밀 안전 치환
+    // 2. Slow path: ANSI 코드가 포함된 정밀 안전 치환
     const ansiRegex = /\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g
 
     interface Token {
@@ -201,16 +209,16 @@ export function replacePreservingAnsi(text: string, kw: string, replacementChar:
         if (tokens[i].isAnsi) continue
 
         let newTokenText = ''
-        const origTokenText = tokens[i].text
+        const charList = Array.from(tokens[i].text)
 
-        for (let j = 0; j < origTokenText.length; j++) {
+        for (const charItem of charList) {
             if (shouldMask[plainIndex]) {
-                const w = getTerminalWidth(origTokenText[j])
+                const w = getTerminalWidth(charItem)
                 newTokenText += replChar.repeat(w)
             } else {
-                newTokenText += origTokenText[j]
+                newTokenText += charItem
             }
-            plainIndex++
+            plainIndex += charItem.length
         }
         tokens[i].text = newTokenText
     }

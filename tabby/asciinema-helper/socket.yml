@@ -1,0 +1,8 @@
+version: 2
+issues:
+  shell-execution:
+    action: ignore
+    reason: "Required for detecting asciinema CLI installation and executing upload commands."
+  filesystem-access:
+    action: ignore
+    reason: "Required for writing .cast recording files and managing storage limits on local disk."

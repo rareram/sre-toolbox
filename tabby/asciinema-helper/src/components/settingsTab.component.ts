@@ -263,7 +263,7 @@ import * as fs from 'fs'
                 <div class="input-group w-100 mb-2">
                     <span class="input-group-text font-monospace">$</span>
                     <input type="text" class="form-control font-monospace" [value]="'asciinema play &quot;' + savePath + '/filename.cast&quot;'" readonly>
-                    <button class="btn btn-outline-secondary" (click)="copyCommand('asciinema play &quot;' + savePath + '/&quot;')">{{ 'Copy Command Example' | translate }}</button>
+                    <button class="btn btn-outline-secondary" (click)="copyCommand('asciinema play &quot;' + savePath + '/filename.cast&quot;')">{{ 'Copy Command Example' | translate }}</button>
                 </div>
                 <div class="small guide-tip">
                     {{ 'Note: During asciinema play execution, you can use Space (pause/play), f (2x speed), . (step frame).' | translate }}
@@ -592,6 +592,9 @@ export class AsciinemaSettingsTabComponent implements OnInit {
         }
 
         this.isUploading = true
+        let fileToUpload = targetPath
+        let tempCreatedPath: string | null = null
+
         try {
             if (this.uploadTitle && this.uploadTitle.trim()) {
                 const lines = fs.readFileSync(targetPath, 'utf8').split('\n')
@@ -600,12 +603,16 @@ export class AsciinemaSettingsTabComponent implements OnInit {
                         const header = JSON.parse(lines[0])
                         header.title = this.uploadTitle.trim()
                         lines[0] = JSON.stringify(header)
-                        fs.writeFileSync(targetPath, lines.join('\n'), 'utf8')
+
+                        const tempPath = path.join(path.dirname(targetPath), `.upload_temp_${Date.now()}.cast`)
+                        fs.writeFileSync(tempPath, lines.join('\n') + '\n', 'utf8')
+                        fileToUpload = tempPath
+                        tempCreatedPath = tempPath
                     } catch (e) {}
                 }
             }
 
-            const url = await this.recorder.uploadToAsciinema(targetPath)
+            const url = await this.recorder.uploadToAsciinema(fileToUpload)
             this.platform.setClipboard({ text: url })
             this.notifications.info(
                 this.translate.instant('Uploaded to asciinema.org successfully!'),
@@ -614,6 +621,9 @@ export class AsciinemaSettingsTabComponent implements OnInit {
         } catch (e: any) {
             this.notifications.error(this.translate.instant('Upload Failed'), e.message || String(e))
         } finally {
+            if (tempCreatedPath && fs.existsSync(tempCreatedPath)) {
+                try { fs.unlinkSync(tempCreatedPath) } catch (e) {}
+            }
             this.isUploading = false
         }
     }

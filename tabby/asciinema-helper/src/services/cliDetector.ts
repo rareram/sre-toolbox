@@ -31,7 +31,7 @@ export function detectAsciinemaCLI (): Promise<CLIInfo> {
     }
 
     const envPATH = process.env.PATH || ''
-    const extraPaths = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:~/.local/bin'
+    const extraPaths = `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${os.homedir()}/.local/bin`
     const fullPATH = `${extraPaths}:${envPATH}`
     const execOptions = { env: { ...process.env, PATH: fullPATH } }
 
@@ -55,37 +55,30 @@ export function detectAsciinemaCLI (): Promise<CLIInfo> {
                 '/usr/local/bin/asciinema',
                 `${os.homedir()}/.local/bin/asciinema`,
                 '/usr/bin/asciinema',
-            ]
+            ].filter(c => fs.existsSync(c))
 
-            let checked = 0
-            let found = false
-
-            for (const candidate of candidates) {
-                if (fs.existsSync(candidate)) {
-                    found = true
-                    execFile(candidate, ['--version'], (err2, stdout2) => {
-                        if (!err2 && stdout2 && stdout2.trim()) {
-                            resolve({
-                                installed: true,
-                                version: stdout2.trim(),
-                                guide,
-                                url,
-                                platformName,
-                            })
-                        } else {
-                            resolve({ installed: false, guide, url, platformName })
-                        }
-                    })
-                    break
-                }
+            if (candidates.length === 0) {
+                resolve({ installed: false, guide, url, platformName })
+                return
             }
 
-            if (!found) {
-                resolve({
-                    installed: false,
-                    guide,
-                    url,
-                    platformName,
+            let resolved = false
+            let checked = 0
+            for (const candidate of candidates) {
+                execFile(candidate, ['--version'], (err2, stdout2) => {
+                    checked++
+                    if (!resolved && !err2 && stdout2 && stdout2.trim()) {
+                        resolved = true
+                        resolve({
+                            installed: true,
+                            version: stdout2.trim(),
+                            guide,
+                            url,
+                            platformName,
+                        })
+                    } else if (!resolved && checked === candidates.length) {
+                        resolve({ installed: false, guide, url, platformName })
+                    }
                 })
             }
         })

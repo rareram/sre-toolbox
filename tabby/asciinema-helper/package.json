@@ -1,6 +1,6 @@
 {
   "name": "tabby-asciinema-helper",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Native Asciinema recorder for Tabby. Record Terminal, Headless Target Sessions (Herdr Multi-Agents, Docker logs, Tmux) in pure .cast format seamlessly.",
   "keywords": [
     "tabby-plugin",
@@ -20,6 +20,15 @@
     "type": "git",
     "url": "git+https://github.com/rareram/sre-toolbox.git"
   },
+  "bugs": {
+    "url": "https://github.com/rareram/sre-toolbox/issues"
+  },
+  "homepage": "https://github.com/rareram/sre-toolbox/tree/main/tabby/asciinema-helper#readme",
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ],
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack --mode production",

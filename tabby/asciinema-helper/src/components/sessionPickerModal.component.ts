@@ -123,13 +123,11 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
     targetType: 'docker' | 'tmux' | 'herdr' | 'none' = 'none'
     sessionName: string = ''
     timerMinutes: number = 0
-    customFileLimitMB: number = 8
-    customMaxSplits: number = 0
+    customFileLimitMB?: number
+    customMaxSplits?: number
 
     sessionList: DiscoveredSession[] = []
     isScanning: boolean = false
-    private activeSubscription: Subscription | null = null
-    private activeTimer: any = null
 
     constructor(
         public modal: NgbActiveModal,
@@ -148,7 +146,7 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy() {
-        this.cleanupScan()
+        this.isScanning = false
     }
 
     setTargetType(type: 'docker' | 'tmux' | 'herdr' | 'none') {
@@ -174,20 +172,8 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
     }
 
     close() {
-        this.cleanupScan()
-        this.modal.dismiss()
-    }
-
-    private cleanupScan() {
-        if (this.activeSubscription) {
-            this.activeSubscription.unsubscribe()
-            this.activeSubscription = null
-        }
-        if (this.activeTimer) {
-            clearTimeout(this.activeTimer)
-            this.activeTimer = null
-        }
         this.isScanning = false
+        this.modal.dismiss()
     }
 
     private stripAnsi(str: string): string {
@@ -202,15 +188,8 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
             return
         }
 
-        this.cleanupScan()
         this.isScanning = true
         this.sessionList = []
-
-        const session = (this.activeTab as any)?.session
-        if (!session) {
-            this.isScanning = false
-            return
-        }
 
         let scanCmd = ''
         if (this.targetType === 'docker') {
@@ -218,26 +197,21 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
         } else if (this.targetType === 'tmux') {
             scanCmd = 'tmux ls'
         } else if (this.targetType === 'herdr') {
-            scanCmd = 'herdr ls'
+            scanCmd = 'herdr session list'
         }
 
-        let capturedOutput = ''
-        this.activeSubscription = session.output$.subscribe((data: string) => {
-            capturedOutput += data
-        })
+        const os = require('os')
+        const extraPaths = `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${os.homedir()}/.local/bin`
+        const fullPATH = `${extraPaths}:${process.env.PATH || ''}`
 
-        // Simple leading space command execution to prevent history logging
-        session.write(` ${scanCmd}\r`)
-
-        this.activeTimer = setTimeout(() => {
-            if (this.activeSubscription) {
-                this.activeSubscription.unsubscribe()
-                this.activeSubscription = null
-            }
-            try { session.write('\r\x1b[2K') } catch (e) {}
+        require('child_process').exec(scanCmd, { timeout: 3000, env: { ...process.env, PATH: fullPATH } }, (err: any, stdout: string) => {
             this.isScanning = false
-            this.parseTerminalOutput(this.stripAnsi(capturedOutput))
-        }, 200)
+            if (err || !stdout) {
+                this.sessionList = []
+                return
+            }
+            this.parseTerminalOutput(this.stripAnsi(stdout))
+        })
     }
 
     private parseTerminalOutput(output: string) {
@@ -281,7 +255,7 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
         } else if (this.targetType === 'herdr') {
             const cleanLines = lines.filter(l => {
                 const clean = l.replace(/^[\$>\s#]+/, '').trim()
-                return clean.length > 0 && !clean.includes('herdr ls') && !clean.includes(']8;;')
+                return clean.length > 0 && !clean.includes('herdr session list') && !clean.includes(']8;;')
             })
 
             let headerSkipped = false
@@ -290,7 +264,7 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
                 if (!cleanLine) continue
 
                 const upper = cleanLine.toUpperCase()
-                if (!headerSkipped && (upper.startsWith('PANE') || upper.startsWith('NAME') || upper.startsWith('ID') || upper.startsWith('SESSION'))) {
+                if (!headerSkipped && (upper.startsWith('NAME') || upper.startsWith('PANE') || upper.startsWith('ID') || upper.startsWith('SESSION'))) {
                     headerSkipped = true
                     continue
                 }
@@ -298,10 +272,10 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
                 const parts = cleanLine.split(/\s+/)
                 const name = parts[0] ? this.sanitizeSessionName(parts[0]) : ''
 
-                if (name && !['herdr', 'ls', 'unknown', 'run', 'command', 'zsh', 'bash'].includes(name.toLowerCase())) {
+                if (name && !['herdr', 'ls', 'list', 'unknown', 'run', 'command', 'zsh', 'bash', 'session', 'status'].includes(name.toLowerCase())) {
                     const rest = parts.slice(1).join(' ')
                     const isPane = line.includes('pane') || name.startsWith('p') || name.startsWith('pane')
-                    const typeLabel = isPane ? 'Herdr Pane' : 'Herdr Space'
+                    const typeLabel = isPane ? 'Herdr Pane' : 'Herdr Session'
                     const detail = rest ? `${typeLabel} (${rest})` : typeLabel
 
                     if (!discovered.some(d => d.name === name)) {
@@ -322,14 +296,17 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
         return ''
     }
 
-    buildGeneratedCommand(): string {
-        let innerCmd = ''
+    getInnerCommand(): string {
         const cleanName = this.sanitizeSessionName(this.sessionName)
-        const prefix = this.getPrefixName() || 'session'
+        if (this.targetType === 'docker' && cleanName) return `docker logs -f --tail=200 ${cleanName}`
+        if (this.targetType === 'tmux' && cleanName) return `tmux attach -t ${cleanName}`
+        if (this.targetType === 'herdr' && cleanName) return `herdr session attach ${cleanName}`
+        return ''
+    }
 
-        if (this.targetType === 'docker' && cleanName) innerCmd = `docker logs -f --tail=200 ${cleanName}`
-        else if (this.targetType === 'tmux' && cleanName) innerCmd = `tmux attach -t ${cleanName}`
-        else if (this.targetType === 'herdr' && cleanName) innerCmd = `herdr attach -t ${cleanName}`
+    buildGeneratedCommand(): string {
+        const innerCmd = this.getInnerCommand()
+        const prefix = this.getPrefixName() || 'session'
 
         const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
         const castPath = path.join(this.recorder.savePath, `${dateStr}_${prefix}.cast`)
@@ -343,12 +320,29 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
     }
 
     startCustomRecord() {
+        let fileLimitMB: number | undefined
+        if (this.customFileLimitMB !== undefined && this.customFileLimitMB !== null && !isNaN(Number(this.customFileLimitMB))) {
+            const parsed = Number(this.customFileLimitMB)
+            if (parsed > 0) {
+                fileLimitMB = Math.min(parsed, 30)
+            }
+        }
+
+        let maxSplits: number | undefined
+        if (this.customMaxSplits !== undefined && this.customMaxSplits !== null && !isNaN(Number(this.customMaxSplits))) {
+            const parsedSplits = Number(this.customMaxSplits)
+            if (parsedSplits >= 0) {
+                maxSplits = Math.min(parsedSplits, 50)
+            }
+        }
+
         this.modal.close({
             command: this.buildGeneratedCommand(),
+            innerCommand: this.getInnerCommand(),
             sessionPrefix: this.getPrefixName(),
             timerMinutes: this.timerMinutes,
-            customFileLimitMB: this.customFileLimitMB,
-            customMaxSplits: this.customMaxSplits,
+            customFileLimitMB: fileLimitMB,
+            customMaxSplits: maxSplits,
         })
     }
 }

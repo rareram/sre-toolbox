@@ -108,10 +108,17 @@ export class AsciinemaButtonProvider extends ToolbarButtonProvider {
         modalRef.componentInstance.activeTab = activeTab
 
         modalRef.result.then((res) => {
-            if (res && res.command) {
+            if (res) {
                 const tab = this.getTerminalTab()
                 if (tab && (tab as any).session) {
-                    ;(tab as any).session.write(res.command + '\r')
+                    this.recorder.startRecording(tab, res.sessionPrefix, {
+                        customFileLimitMB: res.customFileLimitMB,
+                        customMaxSplits: res.customMaxSplits,
+                    })
+
+                    if (res.innerCommand && res.innerCommand.trim()) {
+                        ;(tab as any).session.write(res.innerCommand.trim() + '\r')
+                    }
 
                     if (res.timerMinutes && res.timerMinutes > 0) {
                         const ms = res.timerMinutes * 60 * 1000
@@ -123,7 +130,6 @@ export class AsciinemaButtonProvider extends ToolbarButtonProvider {
                         }, ms)
                     }
 
-                    this.recorder.startRecording(tab, res.sessionPrefix)
                     this.updateButtonState()
                 } else {
                     this.notifications.notice(this.translate.instant('No active terminal session.'))
