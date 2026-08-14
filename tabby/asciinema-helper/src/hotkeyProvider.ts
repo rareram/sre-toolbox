@@ -24,6 +24,10 @@ export class AsciinemaHotkeyProvider extends HotkeyProvider {
                 name: this.translate.instant('Asciinema: Stop Recording'),
             },
             {
+                id: 'asciinema-session-picker',
+                name: this.translate.instant('Asciinema: Session Discovery & Custom Record'),
+            },
+            {
                 id: 'asciinema-play-last',
                 name: this.translate.instant('Asciinema: Play Last Recording (CLI)'),
             },

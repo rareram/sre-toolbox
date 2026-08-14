@@ -1,6 +1,6 @@
 # Grafana 대시보드 백업 및 복구 유틸리티 (`dashboard_export`)
 
-Grafana REST API 또는 Grafana SQLite DB 파일에서 대시보드를 JSON 형태로 일괄 추출(Export)하고, UID 보존 및 버전 관리를 지원하며 업로드(Import)하는 유틸리티 모음입니다.
+Grafana REST API 또는 SQLite DB 파일에서 대시보드를 JSON으로 일괄 추출하고, UID를 보존하며 복구(Import)할 수 있는 유틸리티 모음입니다.
 
 ---
 
@@ -76,7 +76,7 @@ python import_dashboard.py path/to/dashboard.json --no-backup
 2. **Revision 버전 자동 관리**:
    - 동일 UID 대시보드 업로드 시 Grafana 내부 버전(Revision)이 자동으로 1 증가합니다.
 3. **패널 Description 연동**:
-   - 추출된 JSON 내 `panels[].description` 속성을 조작한 뒤 업로드하여 패널별 설명 문구를 일괄 업데이트할 수 있습니다.
+   - 추출된 JSON 파일의 `panels[].description` 속성을 수정한 후 업로드하여 패널별 설명 문구를 일괄 업데이트할 수 있습니다.
 
 ---
 

@@ -1,6 +1,6 @@
 # GitLab 프로젝트 의존성 라이브러리 스캐너 (`gitlab-deps-scan`)
 
-GitLab API를 통해 전체 레포지토리의 매니페스트 및 빌드 설정 파일들을 스캔하여, 프로젝트별로 사용 중인 외부 라이브러리와 버전 정보를 추출 및 집계(EOS 및 보안 조사용)하는 유틸리티입니다.
+GitLab API로 전체 저장소의 매니페스트와 빌드 설정 파일을 스캔하여, 프로젝트별로 사용 중인 외부 라이브러리와 버전 정보를 추출 및 집계(EOS 및 보안 조사용)하는 유틸리티입니다.
 
 ---
 
@@ -48,7 +48,7 @@ python scan_deps.py
 
 스캔이 완료되면 실행 경로에 `deps_inventory.tsv` (TAB 구분 파일)가 생성됩니다.
 - **주요 포함 정보**: Project Path, File Path, Ecosystem Type(Maven, NuGet 등), Dependency Name, Version
-- 추출된 TSV 목록을 활용하여 사용 라이브러리의 EOS(End of Support) 및 보안 취약점 상태를 진단할 수 있습니다.
+- 생성된 TSV 목록으로 프로젝트별 라이브러리의 지원 종료(EOS) 및 보안 취약점 상태를 점검할 수 있습니다.
 
 ---
 

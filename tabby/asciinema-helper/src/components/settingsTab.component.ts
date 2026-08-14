@@ -23,6 +23,37 @@ import * as fs from 'fs'
             </div>
         </div>
 
+        <!-- Section 0: Toolbar Buttons Display Settings (Top Placement) -->
+        <div class="form-line border-bottom-0 pb-1">
+            <div class="header">
+                <div class="title">{{ 'Toolbar Buttons Display' | translate }}</div>
+                <div class="description">
+                    {{ 'Configure visibility of Asciinema buttons on the top toolbar' | translate }}
+                    <span class="text-info ms-1">({{ 'Requires Tabby restart' | translate }})</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-line ps-4 pt-1 border-top-0 border-bottom-0 pb-1 sub-option-line">
+            <div class="header border-start border-2 border-info ps-2">
+                <div class="title small text-muted">{{ 'Show Quick Record Button' | translate }}</div>
+                <div class="description small">{{ 'Show single triangle (▶) toggle button on the toolbar (Ctrl+Shift+R)' | translate }}</div>
+            </div>
+            <div class="form-check form-switch m-0 p-0">
+                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" style="width: 2.5em; height: 1.25em;" [(ngModel)]="showQuickRecordButton" (change)="saveConfig()">
+            </div>
+        </div>
+
+        <div class="form-line ps-4 pt-1 border-top-0 mb-3 sub-option-line">
+            <div class="header border-start border-2 border-info ps-2">
+                <div class="title small text-muted">{{ 'Show Session Discovery Button' | translate }}</div>
+                <div class="description small">{{ 'Show twin triangle (▶▶) headless target session discovery modal button' | translate }}</div>
+            </div>
+            <div class="form-check form-switch m-0 p-0">
+                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" style="width: 2.5em; height: 1.25em;" [(ngModel)]="showSessionPickerButton" (change)="saveConfig()">
+            </div>
+        </div>
+
         <!-- Section 1: Basic Recording & Storage Limits -->
         <div class="form-line">
             <div class="header">
@@ -298,7 +329,7 @@ import * as fs from 'fs'
 
         <div class="card p-3 mb-4 guide-card">
             <p class="guide-text small mb-3">
-                {{ 'Asciinema features can be controlled using 5 hotkeys below. To change or add hotkeys, go to Tabby Settings > Hotkeys and search for Asciinema.' | translate }}
+                {{ 'Asciinema features can be controlled using 6 hotkeys below. To change or add hotkeys, go to Tabby Settings > Hotkeys and search for Asciinema.' | translate }}
             </p>
             <table class="table table-dark table-striped align-middle small mb-0">
                 <thead>
@@ -323,6 +354,11 @@ import * as fs from 'fs'
                         <td><strong>{{ 'Stop Recording Only' | translate }}</strong></td>
                         <td><span class="badge bg-secondary">{{ 'Unassigned (Custom)' | translate }}</span></td>
                         <td>{{ 'Stops recording and saves to a .cast file.' | translate }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>{{ 'Session Discovery & Custom Record' | translate }}</strong></td>
+                        <td><span class="badge bg-secondary">{{ 'Unassigned (Custom)' | translate }}</span></td>
+                        <td>{{ 'Opens headless target session discovery modal (Docker/Tmux).' | translate }}</td>
                     </tr>
                     <tr>
                         <td><strong>{{ 'Play Last Recording in CLI' | translate }}</strong></td>
@@ -409,6 +445,22 @@ export class AsciinemaSettingsTabComponent implements OnInit {
         private recorder: AsciinemaRecorderService,
     ) {
         registerPluginTranslations(this.translate)
+    }
+
+    get showQuickRecordButton(): boolean {
+        return this.config.store.pluginConfig?.['asciinema']?.showQuickRecordButton ?? true
+    }
+
+    set showQuickRecordButton(val: boolean) {
+        this.updatePluginConfig('showQuickRecordButton', val)
+    }
+
+    get showSessionPickerButton(): boolean {
+        return this.config.store.pluginConfig?.['asciinema']?.showSessionPickerButton ?? true
+    }
+
+    set showSessionPickerButton(val: boolean) {
+        this.updatePluginConfig('showSessionPickerButton', val)
     }
 
     get formatVersion(): string {

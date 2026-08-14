@@ -83,30 +83,45 @@ function resolve_port_conflict {
     fi
     
     if [[ "$port_used" == "true" ]]; then
-        log_info "포트 $check_port 번호가 이미 사용 중입니다."
+        log_warn "포트 $check_port 번호가 이미 사용 중입니다."
         if [[ "$INSTALL_MODE" == "migration" ]]; then
             log_info "마이그레이션 모드: 패키지 서비스가 중지된 후 포트 $check_port 번호를 재확보합니다."
             return 0
         fi
         
-        local alt_port=38001
         while true; do
+            read -p "사용할 대체 포트 번호를 입력하세요 (1~65535, 또는 'q'로 취소): " input_port
+            local clean_port="${input_port,,}"
+            clean_port="${clean_port//[[:space:]]/}"
+            clean_port="${clean_port//$'\r'/}"
+            
+            if [[ "$clean_port" == "q" ]]; then
+                log_info "포트 충돌로 인해 설치가 취소되었습니다."
+                return 1
+            fi
+            
+            if ! [[ "$clean_port" =~ ^[0-9]+$ ]] || [ "$clean_port" -lt 1 ] || [ "$clean_port" -gt 65535 ]; then
+                log_error "유효하지 않은 포트 번호입니다. 1부터 65535 사이의 숫자를 입력해 주세요."
+                continue
+            fi
+            
             local alt_used=false
             if command -v ss >/dev/null 2>&1; then
-                eval "ss -tulnp | grep \"LISTEN.*:$alt_port\"" >/dev/null 2>&1 && alt_used=true
+                eval "ss -tulnp | grep \"LISTEN.*:$clean_port\"" >/dev/null 2>&1 && alt_used=true
             else
-                eval "netstat -tulnp | grep \"LISTEN.*:$alt_port\"" >/dev/null 2>&1 && alt_used=true
+                eval "netstat -tulnp | grep \"LISTEN.*:$clean_port\"" >/dev/null 2>&1 && alt_used=true
             fi
             
             if [[ "$alt_used" == "true" ]]; then
-                ((alt_port+=1))
+                log_error "입력하신 포트 $clean_port 번호도 이미 사용 중입니다. 다른 포트를 입력해 주세요."
             else
-                break
+                PORT=$clean_port
+                log_info "Node Exporter 수신 포트를 $PORT 번호로 설정했습니다."
+                return 0
             fi
         done
-        PORT=$alt_port
-        log_info "Node Exporter 수신 포트를 사용할 수 있는 대체 포트 $PORT 번호로 변경했습니다."
     fi
+    return 0
 }
 
 function select_local_binary {
@@ -848,6 +863,7 @@ main() {
                 ;;
             3)
                 INSTALL_MODE="online"
+                PORT=9100
                 log_warn "외부 API(GitHub) 및 다운로드 연결을 시도합니다."
                 log_warn "사내 방화벽 정책에 의해 연결이 차단되거나 보안 팀의 확인 문의가 있을 수 있습니다."
                 echo
@@ -915,7 +931,11 @@ main() {
                 check_installation
                 check_selinux
                 check_install_directory
-                resolve_port_conflict
+                if ! resolve_port_conflict; then
+                    echo
+                    read -p "Enter를 누르면 메인 메뉴로 돌아갑니다..." input
+                    continue
+                fi
                 select_collector_profile
                 online_install
                 configure_service
@@ -925,6 +945,7 @@ main() {
                 ;;
             4)
                 INSTALL_MODE="offline"
+                PORT=9100
                 if ! select_local_binary; then
                     echo
                     read -p "Enter를 누르면 메인 메뉴로 돌아갑니다..." input
@@ -976,7 +997,11 @@ main() {
                 check_installation
                 check_selinux
                 check_install_directory
-                resolve_port_conflict
+                if ! resolve_port_conflict; then
+                    echo
+                    read -p "Enter를 누르면 메인 메뉴로 돌아갑니다..." input
+                    continue
+                fi
                 select_collector_profile
                 offline_install
                 configure_service

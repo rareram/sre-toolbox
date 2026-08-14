@@ -129,9 +129,9 @@ export const STANDALONE_PLAYER_HTML = `<!DOCTYPE html>
         parseError: "Failed to parse .cast file: "
       },
       ko: {
-        title: "Asciinema 독립형 웹 플레이어",
+        title: "Asciinema 단독 실행형 웹 플레이어",
         subtitle: "Windows, Mac, Linux 환경에 관계없이 브라우저에서 .cast 녹화 세션을 즉시 재생합니다.",
-        dropTitle: "여기에 .cast 파일을 드래그 앤 드롭하세요",
+        dropTitle: "여기에 .cast 파일을 끌어다 놓으세요",
         dropDesc: "또는 클릭하여 녹화 파일(.cast)을 선택하세요",
         selectBtn: "파일 선택",
         langBtn: "Language: English",

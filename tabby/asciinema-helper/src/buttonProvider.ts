@@ -46,6 +46,13 @@ export class AsciinemaButtonProvider extends ToolbarButtonProvider {
                 if (tab) {
                     this.recorder.stopRecording(tab)
                 }
+            } else if (hotkey === 'asciinema-session-picker') {
+                if (tab && this.recorder.isRecording(tab)) {
+                    this.recorder.stopRecording(tab)
+                    this.updateButtonState()
+                } else {
+                    this.openSessionPickerModal()
+                }
             } else if (hotkey === 'asciinema-play-last') {
                 this.recorder.playLastRecording(tab)
             } else if (hotkey === 'asciinema-open-settings') {
@@ -141,46 +148,60 @@ export class AsciinemaButtonProvider extends ToolbarButtonProvider {
     provide (): ToolbarButton[] {
         const tab = this.getTerminalTab()
         const isRecording = !!(tab && this.recorder.isRecording(tab))
+        const buttons: ToolbarButton[] = []
+
+        const showQuick = this.config.store.pluginConfig?.['asciinema']?.showQuickRecordButton ?? true
+        const showCustom = this.config.store.pluginConfig?.['asciinema']?.showSessionPickerButton ?? true
 
         // Button 1: Original Quick Record Button (Single Triangle ▶: record.svg / stop.svg)
-        const quickButton: ToolbarButton = {
-            icon: this.getIcon(isRecording),
-            title: isRecording 
-                ? this.translate.instant('Asciinema Stop Recording (Ctrl+Shift+R)') 
-                : this.translate.instant('Asciinema Quick Record (Ctrl+Shift+R)'),
-            touchBarNSImage: 'NSTouchBarRecordStartTemplate',
-            weight: 5,
-            click: () => {
-                const currentTab = this.getTerminalTab()
-                if (!currentTab) {
-                    return
-                }
-                this.recorder.toggleRecording(currentTab)
-                this.updateButtonState()
-            },
+        if (showQuick) {
+            const quickButton: ToolbarButton = {
+                icon: this.getIcon(isRecording),
+                title: isRecording 
+                    ? this.translate.instant('Asciinema Stop Recording (Ctrl+Shift+R)') 
+                    : this.translate.instant('Asciinema Quick Record (Ctrl+Shift+R)'),
+                touchBarNSImage: 'NSTouchBarRecordStartTemplate',
+                weight: 5,
+                click: () => {
+                    const currentTab = this.getTerminalTab()
+                    if (!currentTab) {
+                        return
+                    }
+                    this.recorder.toggleRecording(currentTab)
+                    this.updateButtonState()
+                },
+            }
+            this.quickToolbarButton = quickButton
+            buttons.push(quickButton)
+        } else {
+            this.quickToolbarButton = null
         }
 
         // Button 2: Twin Triangle Forward Icon (▶▶: forwardIcon) for Session Discovery & Custom Record
-        const customButton: ToolbarButton = {
-            icon: forwardIcon,
-            title: this.translate.instant('Asciinema Session & Custom Record'),
-            touchBarNSImage: 'NSTouchBarQuickLookTemplate',
-            weight: 6,
-            click: () => {
-                const currentTab = this.getTerminalTab()
-                if (currentTab && this.recorder.isRecording(currentTab)) {
-                    // Stop recording if active
-                    this.recorder.stopRecording(currentTab)
-                    this.updateButtonState()
-                } else {
-                    // Open session picker modal if not recording
-                    this.openSessionPickerModal()
-                }
-            },
+        if (showCustom) {
+            const customButton: ToolbarButton = {
+                icon: forwardIcon,
+                title: this.translate.instant('Asciinema Session & Custom Record'),
+                touchBarNSImage: 'NSTouchBarQuickLookTemplate',
+                weight: 6,
+                click: () => {
+                    const currentTab = this.getTerminalTab()
+                    if (currentTab && this.recorder.isRecording(currentTab)) {
+                        // Stop recording if active
+                        this.recorder.stopRecording(currentTab)
+                        this.updateButtonState()
+                    } else {
+                        // Open session picker modal if not recording
+                        this.openSessionPickerModal()
+                    }
+                },
+            }
+            this.customToolbarButton = customButton
+            buttons.push(customButton)
+        } else {
+            this.customToolbarButton = null
         }
 
-        this.quickToolbarButton = quickButton
-        this.customToolbarButton = customButton
-        return [quickButton, customButton]
+        return buttons
     }
 }

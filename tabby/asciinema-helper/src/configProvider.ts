@@ -8,11 +8,14 @@ export class AsciinemaConfigProvider extends ConfigProvider {
             'asciinema-toggle-recording': ['Ctrl-Shift-R'],
             'asciinema-start-recording': [],
             'asciinema-stop-recording': [],
+            'asciinema-session-picker': [],
             'asciinema-play-last': ['Ctrl-Shift-P'],
             'asciinema-open-settings': [],
         },
         pluginConfig: {
             asciinema: {
+                showQuickRecordButton: true,
+                showSessionPickerButton: true,
                 formatVersion: 'v2',
                 filePrefix: 'asciinema',
                 filenamePattern: '{host}_{date}',

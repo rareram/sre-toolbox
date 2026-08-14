@@ -241,5 +241,6 @@ yarn-error.log*
 grafana/custom_login/active_theme.txt
 grafana/custom_login/backup/
 
-
-
+# AI Agent & Tools Local State
+.claude/
+.claude

@@ -1,6 +1,6 @@
 # Grafana 패널 Description 편집 유틸리티 (`desc_editor`)
 
-Grafana REST API 연동 및 Streamlit 웹 UI를 기반으로, 대시보드 내 개별 패널의 설명(Description) 문구를 조회, 편집, AI 기반 생성 및 일괄 업데이트할 수 있도록 도와주는 도구 모음입니다.
+Grafana REST API 연동 및 Streamlit 웹 UI를 기반으로, 대시보드 내 개별 패널의 설명(Description) 문구를 조회·편집하고, AI로 자동 생성하여 일괄 반영하는 도구입니다.
 
 ---
 

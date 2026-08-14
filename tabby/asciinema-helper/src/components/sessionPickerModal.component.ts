@@ -10,7 +10,7 @@ import * as path from 'path'
 export interface DiscoveredSession {
     name: string
     detail: string
-    type: 'docker' | 'tmux' | 'herdr'
+    type: 'docker' | 'tmux'
 }
 
 @Component({
@@ -32,9 +32,6 @@ export interface DiscoveredSession {
                     <button type="button" class="btn btn-sm" [class.btn-primary]="targetType === 'tmux'" [class.btn-outline-secondary]="targetType !== 'tmux'" (click)="setTargetType('tmux')">
                         {{ 'Tmux Session' | translate }}
                     </button>
-                    <button type="button" class="btn btn-sm" [class.btn-primary]="targetType === 'herdr'" [class.btn-outline-secondary]="targetType !== 'herdr'" (click)="setTargetType('herdr')">
-                        {{ 'Herdr Session' | translate }}
-                    </button>
                     <button type="button" class="btn btn-sm" [class.btn-primary]="targetType === 'none'" [class.btn-outline-secondary]="targetType !== 'none'" (click)="setTargetType('none')">
                         {{ 'Terminal' | translate }}
                     </button>
@@ -45,7 +42,7 @@ export interface DiscoveredSession {
             <div *ngIf="targetType !== 'none'" class="mb-3">
                 <div class="d-flex align-items-center justify-content-between mb-1">
                     <label class="form-label small fw-bold mb-0">
-                        {{ targetType === 'docker' ? ('Docker Container List' | translate) : (targetType === 'tmux' ? ('Tmux Session List' | translate) : ('Herdr Session List' | translate)) }}
+                        {{ targetType === 'docker' ? ('Docker Container List' | translate) : ('Tmux Session List' | translate) }}
                     </label>
                     <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" (click)="refreshSessionList()">
                         [{{ 'Refresh List' | translate }}]
@@ -67,7 +64,7 @@ export interface DiscoveredSession {
                     </div>
                 </div>
 
-                <input type="text" class="form-control form-control-sm font-monospace" [(ngModel)]="sessionName" (ngModelChange)="onSessionNameInput($event)" [placeholder]="targetType === 'docker' ? ('e.g. my-app-container' | translate) : (targetType === 'tmux' ? ('e.g. prod-logs' | translate) : ('e.g. main or p1' | translate))">
+                <input type="text" class="form-control form-control-sm font-monospace" [(ngModel)]="sessionName" (ngModelChange)="onSessionNameInput($event)" [placeholder]="targetType === 'docker' ? ('e.g. my-app-container' | translate) : ('e.g. prod-logs' | translate)">
             </div>
 
             <!-- One-off Custom Settings -->
@@ -120,7 +117,7 @@ export interface DiscoveredSession {
 export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
     @Input() activeTab: BaseTerminalTabComponent<any> | null = null
 
-    targetType: 'docker' | 'tmux' | 'herdr' | 'none' = 'none'
+    targetType: 'docker' | 'tmux' | 'none' = 'none'
     sessionName: string = ''
     timerMinutes: number = 0
     customFileLimitMB?: number
@@ -149,7 +146,7 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
         this.isScanning = false
     }
 
-    setTargetType(type: 'docker' | 'tmux' | 'herdr' | 'none') {
+    setTargetType(type: 'docker' | 'tmux' | 'none') {
         this.targetType = type
         this.sessionName = ''
         this.sessionList = []
@@ -196,8 +193,6 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
             scanCmd = 'docker ps --format "{{.Names}}|||{{.Image}} ({{.Status}})"'
         } else if (this.targetType === 'tmux') {
             scanCmd = 'tmux ls'
-        } else if (this.targetType === 'herdr') {
-            scanCmd = 'herdr session list'
         }
 
         const os = require('os')
@@ -252,37 +247,6 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
                     }
                 }
             }
-        } else if (this.targetType === 'herdr') {
-            const cleanLines = lines.filter(l => {
-                const clean = l.replace(/^[\$>\s#]+/, '').trim()
-                return clean.length > 0 && !clean.includes('herdr session list') && !clean.includes(']8;;')
-            })
-
-            let headerSkipped = false
-            for (const line of cleanLines) {
-                const cleanLine = line.replace(/^[└├─│\s\t\d+.\-:]+/, '').trim()
-                if (!cleanLine) continue
-
-                const upper = cleanLine.toUpperCase()
-                if (!headerSkipped && (upper.startsWith('NAME') || upper.startsWith('PANE') || upper.startsWith('ID') || upper.startsWith('SESSION'))) {
-                    headerSkipped = true
-                    continue
-                }
-
-                const parts = cleanLine.split(/\s+/)
-                const name = parts[0] ? this.sanitizeSessionName(parts[0]) : ''
-
-                if (name && !['herdr', 'ls', 'list', 'unknown', 'run', 'command', 'zsh', 'bash', 'session', 'status'].includes(name.toLowerCase())) {
-                    const rest = parts.slice(1).join(' ')
-                    const isPane = line.includes('pane') || name.startsWith('p') || name.startsWith('pane')
-                    const typeLabel = isPane ? 'Herdr Pane' : 'Herdr Session'
-                    const detail = rest ? `${typeLabel} (${rest})` : typeLabel
-
-                    if (!discovered.some(d => d.name === name)) {
-                        discovered.push({ name, detail, type: 'herdr' })
-                    }
-                }
-            }
         }
 
         this.sessionList = discovered
@@ -292,7 +256,6 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
         const cleanName = this.sanitizeSessionName(this.sessionName)
         if (this.targetType === 'docker' && cleanName) return `docker_${cleanName}`
         if (this.targetType === 'tmux' && cleanName) return `tmux_${cleanName}`
-        if (this.targetType === 'herdr' && cleanName) return `herdr_${cleanName}`
         return ''
     }
 
@@ -300,7 +263,6 @@ export class AsciinemaSessionPickerModalComponent implements OnInit, OnDestroy {
         const cleanName = this.sanitizeSessionName(this.sessionName)
         if (this.targetType === 'docker' && cleanName) return `docker logs -f --tail=200 ${cleanName}`
         if (this.targetType === 'tmux' && cleanName) return `tmux attach -t ${cleanName}`
-        if (this.targetType === 'herdr' && cleanName) return `herdr session attach ${cleanName}`
         return ''
     }
 

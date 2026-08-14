@@ -11,7 +11,7 @@ Windows 서버 환경에서 Prometheus windows_exporter 모니터링 에이전�
 2. **Windows 시스템 서비스 자동 등록**:
    - 서버 재부팅 시에도 모니터링이 자동 재개되도록 Windows Service로 등록 처리
 3. **단일 실행 파일(.exe) 빌드 지원**:
-   - PyInstaller를 사용하여 타겟 서버에 별도 Python 환경 구축 없이 독립 실행 가능한 `.exe` 바이너리로 컴파일 가능
+   - PyInstaller를 사용하여 별도 Python 설치 없이 실행 가능한 독립 실행 파일(`.exe`)로 빌드 지원
 
 ---
 

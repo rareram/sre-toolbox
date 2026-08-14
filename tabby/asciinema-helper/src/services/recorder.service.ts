@@ -366,9 +366,17 @@ export class AsciinemaRecorderService {
 
             const maskChar = this.maskingChar || '*'
 
+            // v3 은 상대 간격(delta) 타임스탬프를 사용, v2 는 절대 경과 시간 사용
+            const useDeltaTime = session.header.version === 3
+            let lastAbsTime = 0
+
             const eventLines: string[] = []
             for (const event of session.events) {
-                const time = Math.round(event[0] * 10000) / 10000
+                const absTime = event[0]
+                const time = Math.round((useDeltaTime ? absTime - lastAbsTime : absTime) * 10000) / 10000
+                if (useDeltaTime) {
+                    lastAbsTime = absTime
+                }
                 let text = event[2]
                 if (keywords.length > 0 && event[1] === 'o') {
                     for (const kw of keywords) {

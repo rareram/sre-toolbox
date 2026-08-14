@@ -1,6 +1,6 @@
 # Azure 자원 보안 설정 점검 유틸리티 (`security_scan`)
 
-Azure SDK 및 Azure Functions(HTTP Trigger) 기반으로 대상 구독(Subscription) 내 주요 클라우드 자원의 암호화 및 보안 설정 누락 여부를 진단하는 스캔 유틸리티입니다.
+Azure SDK 및 Azure Functions(HTTP Trigger) 기반으로 대상 구독(Subscription) 내 주요 클라우드 리소스의 암호화 및 보안 설정 누락 여부를 점검하는 유틸리티입니다.
 
 ---
 
@@ -13,7 +13,7 @@ Azure SDK 및 Azure Functions(HTTP Trigger) 기반으로 대상 구독(Subscript
 3. **네트워크 보안 그룹 규칙 (`network_security_groups`)**:
    - NSG(Network Security Group) 내 차단 규칙(Deny Rule) 구성 상태 점검
 4. **Azure SQL Database TDE 상태 (`sql_tde`)**:
-   - Azure SQL 데이터베이스의 투명적 데이터 암호화(TDE, Transparent Data Encryption) 활성화 상태 점검
+   - Azure SQL 데이터베이스의 투명한 데이터 암호화(TDE, Transparent Data Encryption) 활성화 상태 점검
 
 ---
 
