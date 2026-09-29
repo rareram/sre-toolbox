@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[oc]
+*.pyc
+.pytest_cache/
+
+# Virtual Environment
+.venv/
+
+# Environment Variables
+.env
+
+# SQLite Database Files
+*.db
+*.db-wal
+*.db-shm

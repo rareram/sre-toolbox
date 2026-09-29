@@ -244,3 +244,6 @@ grafana/custom_login/backup/
 # AI Agent & Tools Local State
 .claude/
 .claude
+draft/
+**/draft/
+_workspace/

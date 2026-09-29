@@ -1,0 +1,6 @@
+ip,hostname,cluster,role,location,owner,health_url,runbook_url,check_command,tags
+10.19.20.101,spark-master-01,spark-prod,Spark Master,IDC 2F Rack A-01 10U,데이터인프라팀 / 홍길동,http://10.19.20.101:8080,https://wiki.internal/ops/spark,systemctl status spark-master,"prod,master,spark"
+10.19.20.104,spark-worker-04,spark-prod,Spark Worker,IDC 2F Rack A-04 12U,데이터인프라팀 / 홍길동,http://10.19.20.104:8081,https://wiki.internal/ops/spark,systemctl status spark-worker,"prod,worker,spark"
+10.20.10.11,kafka-broker-01,kafka-prod,Kafka Broker,IDC 3F Rack K-01 04U,메시징팀 / 이순신,http://10.20.10.11:9092,https://wiki.internal/ops/kafka,systemctl status kafka,"prod,broker,kafka"
+10.20.10.12,kafka-broker-02,kafka-prod,Kafka Broker,IDC 3F Rack K-01 05U,메시징팀 / 이순신,http://10.20.10.12:9092,https://wiki.internal/ops/kafka,systemctl status kafka,"prod,broker,kafka"
+10.30.1.20,payment-api-prod01,payment-prod,Payment API,IDC 1F Rack P-02 08U,결제플랫폼팀 / 강감찬,http://10.30.1.20:8080/healthz,https://wiki.internal/ops/payment,systemctl status payment-api,"prod,api,payment"
