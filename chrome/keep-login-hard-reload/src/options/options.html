@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="optionsTitle">KeepLogin Hard Reload Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <img src="/icons/icon-48.png" alt="Logo" class="logo-img">
+        <div>
+          <div class="title-row">
+            <h1 data-i18n="optionsTitle">KeepLogin Hard Reload</h1>
+            <span class="badge version-badge">v0.1.5</span>
+          </div>
+          <p class="subtitle" data-i18n="appDesc">Clears cache without logging out.</p>
+        </div>
+      </div>
+      <div class="theme-switcher">
+        <button type="button" class="theme-btn" data-theme="system" data-i18n="themeSystem">System</button>
+        <button type="button" class="theme-btn" data-theme="dark" data-i18n="themeDark">Dark</button>
+        <button type="button" class="theme-btn" data-theme="light" data-i18n="themeLight">Light</button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button type="button" class="nav-tab active" data-tab="current" data-i18n="tabCurrent">Active Tab</button>
+      <button type="button" class="nav-tab" data-tab="domains" data-i18n="tabDomains">Tabs & Domains</button>
+      <button type="button" class="nav-tab" data-tab="automation" data-i18n="tabAutomation">Automation & Clean</button>
+    </nav>
+
+    <!-- TAB 1: Active Tab Settings -->
+    <section id="tab-current" class="tab-pane active">
+      <div class="card">
+        <h2 data-i18n="optionsHeader">Active Tab Clear Targets</h2>
+        <p class="section-desc" data-i18n="optionsDesc">Configure which cache components are purged on the active tab.</p>
+
+        <form id="form-current-settings">
+          <label class="switch-row">
+            <input type="checkbox" id="opt-cache" checked>
+            <span class="switch-ui"></span>
+            <span class="switch-label" data-i18n="optCache">Clear HTTP Cache (Images, Stylesheets, Scripts)</span>
+          </label>
+
+          <label class="switch-row">
+            <input type="checkbox" id="opt-serviceworkers" checked>
+            <span class="switch-ui"></span>
+            <span class="switch-label" data-i18n="optServiceWorkers">Unregister Service Workers</span>
+          </label>
+
+          <label class="switch-row">
+            <input type="checkbox" id="opt-cachestorage" checked>
+            <span class="switch-ui"></span>
+            <span class="switch-label" data-i18n="optCacheStorage">Clear Cache Storage API (PWA / Offline cache)</span>
+          </label>
+
+          <div class="divider"></div>
+
+          <label class="switch-row">
+            <input type="checkbox" id="opt-autoreload" checked>
+            <span class="switch-ui"></span>
+            <span class="switch-label" data-i18n="optAutoReload">Automatically reload active tab with cache bypass</span>
+          </label>
+
+          <label class="switch-row">
+            <input type="checkbox" id="opt-showhud" checked>
+            <span class="switch-ui"></span>
+            <span class="switch-label" data-i18n="optShowHUD">Show In-Page HUD Toast on target page</span>
+          </label>
+
+          <div class="safety-box">
+            <h3 data-i18n="safetyNoticeTitle">Safety Guarantee</h3>
+            <p data-i18n="safetyNoticeDesc">Cookies, LocalStorage, and IndexedDB are strictly preserved to prevent session termination or logout.</p>
+          </div>
+
+          <div class="action-bar">
+            <button type="submit" class="btn btn-primary" data-i18n="saveButton">Save Settings</button>
+            <span id="status-current" class="status-indicator"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 2: Tabs & Domains Management -->
+    <section id="tab-domains" class="tab-pane">
+      <!-- Live Open Tabs Card -->
+      <div class="card mb-24">
+        <div class="card-header-flex">
+          <div>
+            <h2 data-i18n="openTabsHeader">Live Open Tabs</h2>
+            <p class="section-desc" data-i18n="openTabsDesc">Parse domains of currently opened browser tabs.</p>
+          </div>
+          <button type="button" id="btn-refresh-tabs" class="btn btn-secondary btn-sm" data-i18n="btnRefreshTabs">Refresh</button>
+        </div>
+
+        <div class="bulk-controls">
+          <button type="button" id="btn-select-all-tabs" class="text-link-btn" data-i18n="btnSelectAll">Select All</button>
+          <span class="bullet-sep">|</span>
+          <button type="button" id="btn-deselect-all-tabs" class="text-link-btn" data-i18n="btnDeselectAll">Deselect All</button>
+        </div>
+
+        <div id="open-tabs-container" class="domain-scroll-box">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div class="action-bar mt-16">
+          <button type="button" id="btn-clear-selected-tabs" class="btn btn-primary" data-i18n="btnClearSelectedTabs">Clear Selected Sites</button>
+          <span id="status-tabs" class="status-indicator"></span>
+        </div>
+      </div>
+
+      <!-- Managed Sites Card -->
+      <div class="card">
+        <h2 data-i18n="customDomainsHeader">Managed Sites (Domain List)</h2>
+        <p class="section-desc" data-i18n="customDomainsDesc">Register frequently tested sites to purge cache with one click.</p>
+
+        <form id="form-add-domain" class="input-action-row">
+          <input type="text" id="input-domain" class="form-input" placeholder="e.g. http://localhost:3000" data-i18n-placeholder="domainInputPlaceholder" required>
+          <button type="submit" class="btn btn-primary" data-i18n="btnAddDomain">Add</button>
+        </form>
+
+        <div id="custom-domains-container" class="domain-scroll-box mt-16">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div class="action-bar mt-16">
+          <button type="button" id="btn-clear-custom-domains" class="btn btn-secondary" data-i18n="btnClearCustomDomains">Purge All Managed Sites</button>
+          <span id="status-custom" class="status-indicator"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Automation & Sandbox Clean -->
+    <section id="tab-automation" class="tab-pane">
+      <!-- Scheduler Card -->
+      <div class="card mb-24">
+        <h2 data-i18n="schedulerHeader">Scheduled Cache Purge</h2>
+        <p class="section-desc" data-i18n="schedulerDesc">Periodically purge cache in background without reloading.</p>
+
+        <form id="form-scheduler">
+          <label class="switch-row">
+            <input type="checkbox" id="opt-scheduler-enable">
+            <span class="switch-ui"></span>
+            <span class="switch-label" data-i18n="optSchedulerEnable">Enable Background Scheduler</span>
+          </label>
+
+          <div class="form-grid mt-16">
+            <div class="form-field">
+              <label class="field-label" data-i18n="lblScheduleDomain">Target Site:</label>
+              <select id="select-schedule-domain" class="form-select">
+                <!-- Dynamically populated from open tabs & custom domains -->
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="field-label" data-i18n="lblScheduleInterval">Interval (Minutes):</label>
+              <input type="number" id="input-schedule-interval" class="form-input" min="1" max="1440" value="10" required>
+            </div>
+          </div>
+
+          <label class="switch-row mt-16">
+            <input type="checkbox" id="opt-schedule-notify" checked>
+            <span class="switch-ui"></span>
+            <span class="switch-label" data-i18n="optScheduleNotify">Show notification and badge when auto-purged</span>
+          </label>
+
+          <div class="action-bar mt-20">
+            <button type="submit" class="btn btn-primary" data-i18n="saveButton">Save Settings</button>
+            <span id="status-scheduler" class="status-indicator"></span>
+          </div>
+        </form>
+      </div>
+
+      <!-- Sandbox Clean (Emergency Global Purge) Card -->
+      <div class="card danger-card">
+        <h2 class="danger-title" data-i18n="sandboxCleanHeader">Global Browser Cache Purge (Sandbox Clean)</h2>
+        <p class="section-desc" data-i18n="sandboxCleanDesc">Purge all browser HTTP cache and workers immediately. Login sessions remain safe.</p>
+
+        <div class="danger-action-box">
+          <button type="button" id="btn-purge-all-cache" class="btn btn-danger btn-lg" data-i18n="btnPurgeAllCache">
+            Purge All Browser Cache Now (Keep Login)
+          </button>
+          <span id="status-all-cache" class="status-indicator"></span>
+        </div>
+
+        <div class="shortcut-tip-box mt-20">
+          <p data-i18n="shortcutHelp">Configure shortcuts: Visit chrome://extensions/shortcuts to customize key combinations and avoid conflicts.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>KeepLogin Hard Reload &bull; SRE Toolbox</p>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

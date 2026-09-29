@@ -14,13 +14,13 @@ from prompt import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 load_dotenv()
 app = Flask(__name__)
 
-# LLM Provider 설정 (Local Ollama / vLLM / OpenAI 호환)
+# LLM 엔진 호환성: 표준 OpenAI API 규격 기반 로컬(Ollama/vLLM) 및 클라우드 모델 간 유연한 전환 지원
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
 LLM_API_KEY  = os.getenv("LLM_API_KEY", "ollama")
 LLM_MODEL    = os.getenv("LLM_MODEL", "gemma4:e4b")
 
 
-# 봇 운영 및 식별 메타데이터
+# 발송 이력 추적: 메시지 발송 주체 식별을 위한 호스트 및 봇 버전 메타데이터 정의
 BOT_NAME     = os.getenv("BOT_NAME", "incident-comm-bot")
 BOT_VERSION  = os.getenv("BOT_VERSION", "v0.2.0")
 BOT_OWNER    = os.getenv("BOT_OWNER", "sre-team@company.com")
@@ -33,8 +33,7 @@ client = OpenAI(
     api_key=LLM_API_KEY
 )
 
-# 메모리 기반 장애 타임라인 저장소:
-# { incident_id: { "first_seen": "HH:MM:SS", "first_seen_dt": datetime, "update_count": int, "history": [ {"timestamp": "...", "entry": "..."}, ... ] } }
+# 세션 관리: 인시던트 ID 기준 타임라인 누적 및 경과 시간 집계용 메모리 캐시
 INCIDENT_STORE = {}
 
 def get_or_create_incident_id(custom_id: str = None) -> str:
@@ -53,7 +52,7 @@ def format_timeline(incident_id: str) -> str:
     return "\n".join(lines)
 
 def clean_json_response(raw_content: str) -> dict:
-    """LLM 응답에서 마크다운 코드블록(` ```json ... ``` `) 제거 후 JSON 파싱"""
+    """LLM 응답 정제: 코드블록(```json) 마크다운을 제거하고 JSON으로 파싱"""
     cleaned = raw_content.strip()
     if cleaned.startswith("```"):
         cleaned = re.sub(r"^```(?:json)?\n?", "", cleaned, flags=re.MULTILINE)
@@ -62,7 +61,7 @@ def clean_json_response(raw_content: str) -> dict:
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        # Fallback 구조
+        # JSON 파싱 실패 대비: 일반 텍스트 응답 시 원문 복제 및 비상 체크리스트 자동 반환
         return {
             "dev_markdown": f"## [1. 개발팀 내부 공유용 - Technical Report]\n{raw_content}",
             "leader_markdown": f"## [2. 리더/임원 보고용 - Managerial Summary]\n{raw_content}",
@@ -102,7 +101,7 @@ def generate_incident_report(raw_incident: str, incident_id: str) -> dict:
             "timeline_entry": "알림 수신 (분석 실패)"
         }
 
-    # 장애 통계 및 타임라인 업데이트 누적
+    # 타임라인 누적: 최초 감지 시점 기준 경과 시간 계산 및 업데이트 횟수 증가
     now_dt = datetime.now()
     now_time_str = now_dt.strftime("%H:%M:%S")
     entry_text = parsed.get("timeline_entry") or "상황 업데이트 수신"
@@ -122,7 +121,7 @@ def generate_incident_report(raw_incident: str, incident_id: str) -> dict:
         "entry": entry_text
     })
 
-    # 지속 시간 계산
+    # 장애 지속 시간 계산: 발생 시점부터 현재까지 경과 시간을 시/분/초 단위로 포맷팅
     elapsed_seconds = int((now_dt - item["first_seen_dt"]).total_seconds())
     mins, secs = divmod(elapsed_seconds, 60)
     hrs, mins = divmod(mins, 60)
@@ -158,7 +157,7 @@ def build_teams_composite_message(parsed_report: dict, section: str = "all") -> 
     timeline_items = parsed_report.get("full_timeline", [])
     timeline_md = "\n".join([f"- **[{t['timestamp']}]** {t['entry']}" for t in timeline_items])
 
-    # 장애 현황 통계 헤더 부착
+    # Teams 카드 헤더 구성: 최초 발생 시각 및 지속 시간 요약 헤더 결합
     stats_header = f"⏱️ **최초 발생**: `{first_seen}` | ⏳ **지속 시간**: `{duration_str}` | 🔄 **보고 횟수**: `{update_count}차 업데이트`"
     parts = [f"# [장애 대응 리포트] {inc_id}\n{stats_header}"]
     
@@ -175,7 +174,7 @@ def build_teams_composite_message(parsed_report: dict, section: str = "all") -> 
     parts.append(f"### [긴급 점검 체크리스트]\n{checklist_md}")
     parts.append(f"### [장애 진행 타임라인]\n{timeline_md}")
     
-    # 봇 운영 식별 메타데이터 푸터 부착
+    # 출처 식별: 봇 버전, 호스트, 실행 모델 정보 푸터 추가
     footer = f"*Bot*: `{BOT_NAME}` | *Ver*: `{BOT_VERSION}` | *Host*: `{HOSTNAME}` | *Owner*: `{BOT_OWNER}` | *LLM*: `{LLM_MODEL}`"
     parts.append(footer)
 
@@ -216,6 +215,7 @@ def generate():
             post_to_teams(msg_to_send, TEAMS_WEBHOOK)
             report["posted_to_teams"] = True
         except Exception as e:
+            app.logger.error("Failed to post to Teams: %s", e)
             report["posted_to_teams"] = False
             report["teams_post_error"] = str(e)
 
@@ -223,7 +223,7 @@ def generate():
 
 @app.route("/webhook/grafana", methods=["POST"])
 def webhook_grafana():
-    """Grafana Alertmanager Webhook Payload 수신"""
+    """Grafana Alertmanager 웹훅 연동: firing 상태 알람 파싱 및 통합 리포트 자동 생성"""
     data = request.get_json(force=True) or {}
     alerts = data.get("alerts", [])
     title = data.get("title") or "Grafana Alert Triggered"
@@ -249,6 +249,7 @@ def webhook_grafana():
             post_to_teams(msg_to_send, TEAMS_WEBHOOK)
             report["posted_to_teams"] = True
         except Exception as e:
+            app.logger.error("Failed to post Grafana alert to Teams: %s", e)
             report["posted_to_teams"] = False
             report["teams_post_error"] = str(e)
 

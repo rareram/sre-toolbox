@@ -18,7 +18,7 @@ def client():
         yield client
 
 # ============================================================================
-# 1. 헬퍼 유틸리티 및 파서 단위 테스트 (Unit Tests)
+# 1. 헬퍼 유틸리티 및 응답 JSON 파서 단위 테스트
 # ============================================================================
 
 def test_get_or_create_incident_id():
@@ -68,7 +68,7 @@ def test_build_teams_composite_message_filtering():
     assert "*Bot*:" in dev_msg
 
 # ============================================================================
-# 2. Flask 엔드포인트 API 통합 테스트 (Integration Tests)
+# 2. Flask HTTP 엔드포인트 API 통합 테스트
 # ============================================================================
 
 def test_healthz_endpoint(client):
@@ -242,7 +242,7 @@ def test_teams_webhook_posting_failure(mock_llm_create, mock_requests_post, clie
 
 @patch("app.client.chat.completions.create")
 def test_generate_non_technical_symptom_input(mock_llm_create, client):
-    # 비기술자/고객사 담당자의 구두 현상 입력 ("결제창이 흰 화면으로 멈춰요") 테스트
+    # 비정형 제보 처리 검증: 구두 증상 제보 입력 시 관련 기술 레이어(Frontend PG SDK/API Gateway) 자동 추론 확인
     mock_response = MagicMock()
     mock_response.choices = [
         MagicMock(message=MagicMock(content=json.dumps({

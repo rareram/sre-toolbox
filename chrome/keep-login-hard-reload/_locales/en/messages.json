@@ -1,0 +1,206 @@
+{
+  "appName": {
+    "message": "KeepLogin Hard Reload",
+    "description": "The name of the extension"
+  },
+  "appDesc": {
+    "message": "Clears HTTP cache and service workers for the current site while preserving login cookies and session, followed by a hard reload.",
+    "description": "Description of what the extension does"
+  },
+  "actionTitle": {
+    "message": "Clear cache & hard reload (Keep Login)",
+    "description": "Tooltip for the extension toolbar button"
+  },
+  "cmdClearAllCache": {
+    "message": "Clear all browser cache without logout",
+    "description": "Command description for clearing all cache"
+  },
+  "optionsTitle": {
+    "message": "KeepLogin Hard Reload Settings",
+    "description": "Title of the options page"
+  },
+  "tabCurrent": {
+    "message": "Active Tab",
+    "description": "Tab label for current tab settings"
+  },
+  "tabDomains": {
+    "message": "Tabs & Domains",
+    "description": "Tab label for domain management"
+  },
+  "tabAutomation": {
+    "message": "Automation & Sandbox Clean",
+    "description": "Tab label for automation and sandbox clean"
+  },
+  "themeSystem": {
+    "message": "System",
+    "description": "System theme"
+  },
+  "themeDark": {
+    "message": "Dark",
+    "description": "Dark theme"
+  },
+  "themeLight": {
+    "message": "Light",
+    "description": "Light theme"
+  },
+  "optionsHeader": {
+    "message": "Active Tab Clear Targets",
+    "description": "Header for targets section"
+  },
+  "optionsDesc": {
+    "message": "Configure which cache components are purged when triggering hard reload on the active tab.",
+    "description": "Description for targets section"
+  },
+  "optCache": {
+    "message": "Clear HTTP Cache (Images, Stylesheets, Scripts)",
+    "description": "Checkbox label for HTTP cache"
+  },
+  "optServiceWorkers": {
+    "message": "Unregister Service Workers",
+    "description": "Checkbox label for service workers"
+  },
+  "optCacheStorage": {
+    "message": "Clear Cache Storage API (PWA / Offline cache)",
+    "description": "Checkbox label for cache storage"
+  },
+  "optAutoReload": {
+    "message": "Automatically reload active tab with cache bypass",
+    "description": "Checkbox label for auto reload"
+  },
+  "optShowHUD": {
+    "message": "Show In-Page HUD Toast on target page",
+    "description": "Checkbox label for HUD toast"
+  },
+  "safetyNoticeTitle": {
+    "message": "Safety Guarantee",
+    "description": "Notice section title"
+  },
+  "safetyNoticeDesc": {
+    "message": "Cookies, LocalStorage, and IndexedDB are strictly preserved to prevent session termination or logout.",
+    "description": "Notice section description"
+  },
+  "openTabsHeader": {
+    "message": "Live Open Tabs",
+    "description": "Header for open tabs"
+  },
+  "openTabsDesc": {
+    "message": "Parse domains of currently opened browser tabs and selectively purge their cache.",
+    "description": "Description for open tabs"
+  },
+  "btnRefreshTabs": {
+    "message": "Refresh List",
+    "description": "Button to refresh open tabs"
+  },
+  "btnSelectAll": {
+    "message": "Select All",
+    "description": "Button to select all tabs"
+  },
+  "btnDeselectAll": {
+    "message": "Deselect All",
+    "description": "Button to deselect all tabs"
+  },
+  "btnClearSelectedTabs": {
+    "message": "Clear Cache for Selected Sites (Keep Login)",
+    "description": "Button to clear cache for selected tabs"
+  },
+  "noOpenTabs": {
+    "message": "No active web tabs found.",
+    "description": "Empty state for open tabs"
+  },
+  "customDomainsHeader": {
+    "message": "Managed Sites (Domain List)",
+    "description": "Header for custom domains"
+  },
+  "customDomainsDesc": {
+    "message": "Register frequently tested sites (e.g. http://localhost:3000, grafana) to purge cache with one click.",
+    "description": "Description for custom domains"
+  },
+  "domainInputPlaceholder": {
+    "message": "e.g. http://localhost:3000 or grafana.company.com",
+    "description": "Placeholder for domain input"
+  },
+  "btnAddDomain": {
+    "message": "Add",
+    "description": "Button to add domain"
+  },
+  "btnClearCustomDomains": {
+    "message": "Purge Cache for All Managed Sites (Keep Login)",
+    "description": "Button to clear custom domains"
+  },
+  "noCustomDomains": {
+    "message": "No managed sites registered yet. Add a domain above.",
+    "description": "Empty state for custom domains"
+  },
+  "schedulerHeader": {
+    "message": "Scheduled Cache Purge",
+    "description": "Header for scheduler"
+  },
+  "schedulerDesc": {
+    "message": "Periodically purge cache for a target site in the background without reloading the page.",
+    "description": "Description for scheduler"
+  },
+  "optSchedulerEnable": {
+    "message": "Enable Background Scheduler",
+    "description": "Enable scheduler checkbox"
+  },
+  "lblScheduleDomain": {
+    "message": "Target Site:",
+    "description": "Label for target domain"
+  },
+  "lblScheduleInterval": {
+    "message": "Interval in minutes (manual entry):",
+    "description": "Label for interval"
+  },
+  "optScheduleNotify": {
+    "message": "Show notification and badge when auto-purged",
+    "description": "Notification checkbox"
+  },
+  "sandboxCleanHeader": {
+    "message": "Global Browser Cache Purge (Sandbox Clean)",
+    "description": "Header for sandbox clean"
+  },
+  "sandboxCleanDesc": {
+    "message": "Purge all HTTP cache, service workers, and cache storage across the entire browser immediately. All login sessions (cookies, storage) remain safe.",
+    "description": "Description for sandbox clean"
+  },
+  "btnPurgeAllCache": {
+    "message": "Purge All Browser Cache Now (Keep Login)",
+    "description": "Button to purge all cache"
+  },
+  "confirmPurgeAll": {
+    "message": "Are you sure you want to purge cache for ALL websites? (Login sessions will be preserved)",
+    "description": "Confirm message"
+  },
+  "shortcutHelp": {
+    "message": "Configure shortcuts: Visit chrome://extensions/shortcuts to customize key combinations and avoid conflicts.",
+    "description": "Help text for shortcuts"
+  },
+  "saveSuccess": {
+    "message": "Settings saved successfully.",
+    "description": "Message shown when options are saved"
+  },
+  "saveButton": {
+    "message": "Save Settings",
+    "description": "Button label for saving settings"
+  },
+  "purgeSuccess": {
+    "message": "Cache cleared successfully.",
+    "description": "Purge success message"
+  },
+  "hudClearing": {
+    "message": "Clearing site cache & workers...",
+    "description": "HUD message during cache clearance"
+  },
+  "hudReloading": {
+    "message": "Hard reloading...",
+    "description": "HUD message during page reload"
+  },
+  "notifTitle": {
+    "message": "KeepLogin Hard Reload",
+    "description": "Notification title"
+  },
+  "notifAutoPurge": {
+    "message": "Cache was automatically purged in the background for target site.",
+    "description": "Notification message for auto purge"
+  }
+}

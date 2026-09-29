@@ -1,0 +1,8 @@
+# Local Agent Draft & Spec Documents
+draft/
+
+# WebStore Package Archive
+*.zip
+
+# System Files
+.DS_Store

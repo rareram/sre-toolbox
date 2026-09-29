@@ -1,0 +1,206 @@
+{
+  "appName": {
+    "message": "KeepLogin Hard Reload",
+    "description": "The name of the extension"
+  },
+  "appDesc": {
+    "message": "현재 사이트의 로그인 쿠키와 세션은 보존하고, HTTP 캐시와 서비스 워커만 완전히 비운 뒤 강력 새로고침합니다.",
+    "description": "Description of what the extension does"
+  },
+  "actionTitle": {
+    "message": "캐시 삭제 후 강력 새로고침 (로그인 유지)",
+    "description": "Tooltip for the extension toolbar button"
+  },
+  "cmdClearAllCache": {
+    "message": "전체 캐시 비우기 (로그인 유지)",
+    "description": "Command description for clearing all cache"
+  },
+  "optionsTitle": {
+    "message": "KeepLogin Hard Reload 설정",
+    "description": "Title of the options page"
+  },
+  "tabCurrent": {
+    "message": "현재 탭 설정",
+    "description": "Tab label for current tab settings"
+  },
+  "tabDomains": {
+    "message": "열린 탭 & 도메인 관리",
+    "description": "Tab label for domain management"
+  },
+  "tabAutomation": {
+    "message": "자동화 & 비상 청소",
+    "description": "Tab label for automation and sandbox clean"
+  },
+  "themeSystem": {
+    "message": "시스템",
+    "description": "System theme"
+  },
+  "themeDark": {
+    "message": "다크",
+    "description": "Dark theme"
+  },
+  "themeLight": {
+    "message": "라이트",
+    "description": "Light theme"
+  },
+  "optionsHeader": {
+    "message": "현재 탭 캐시 삭제 항목",
+    "description": "Header for targets section"
+  },
+  "optionsDesc": {
+    "message": "단축키(Option + R) 또는 툴바 아이콘 클릭 시 현재 탭에서 삭제할 항목을 설정합니다.",
+    "description": "Description for targets section"
+  },
+  "optCache": {
+    "message": "HTTP 캐시 삭제 (이미지, CSS 스타일시트, JS 스크립트 번들)",
+    "description": "Checkbox label for HTTP cache"
+  },
+  "optServiceWorkers": {
+    "message": "서비스 워커(Service Worker) 등록 해제",
+    "description": "Checkbox label for service workers"
+  },
+  "optCacheStorage": {
+    "message": "캐시 스토리지(Cache Storage API) 비우기",
+    "description": "Checkbox label for cache storage"
+  },
+  "optAutoReload": {
+    "message": "캐시 삭제 직후 캐시 우회(Bypass Cache) 새로고침 자동 실행",
+    "description": "Checkbox label for auto reload"
+  },
+  "optShowHUD": {
+    "message": "웹페이지 상단 인-페이지 HUD 캡슐 토스트 표시",
+    "description": "Checkbox label for HUD toast"
+  },
+  "safetyNoticeTitle": {
+    "message": "세션 안전 보장 안내",
+    "description": "Notice section title"
+  },
+  "safetyNoticeDesc": {
+    "message": "쿠키(Cookies), 로컬 스토리지(LocalStorage), IndexedDB는 어떤 경우에도 삭제 대상에 포함되지 않으므로 로그인 세션이 끊기지 않습니다.",
+    "description": "Notice section description"
+  },
+  "openTabsHeader": {
+    "message": "현재 열려 있는 탭 목록 (Live Open Tabs)",
+    "description": "Header for open tabs"
+  },
+  "openTabsDesc": {
+    "message": "현재 브라우저에 열려 있는 탭들의 도메인을 파싱하여 선택적으로 캐시를 삭제합니다.",
+    "description": "Description for open tabs"
+  },
+  "btnRefreshTabs": {
+    "message": "새로고침",
+    "description": "Button to refresh open tabs"
+  },
+  "btnSelectAll": {
+    "message": "전체 선택",
+    "description": "Button to select all tabs"
+  },
+  "btnDeselectAll": {
+    "message": "선택 해제",
+    "description": "Button to deselect all tabs"
+  },
+  "btnClearSelectedTabs": {
+    "message": "선택한 사이트 캐시 삭제 (로그인 유지)",
+    "description": "Button to clear cache for selected tabs"
+  },
+  "noOpenTabs": {
+    "message": "열려 있는 일반 웹 탭이 없습니다.",
+    "description": "Empty state for open tabs"
+  },
+  "customDomainsHeader": {
+    "message": "사용자 등록 사이트 관리 (Managed Sites)",
+    "description": "Header for custom domains"
+  },
+  "customDomainsDesc": {
+    "message": "자주 테스트하는 사이트(예: http://localhost:3000, grafana 등)를 등록해 두고 원클릭으로 캐시를 일괄 삭제합니다.",
+    "description": "Description for custom domains"
+  },
+  "domainInputPlaceholder": {
+    "message": "예: http://localhost:3000 또는 grafana.company.com",
+    "description": "Placeholder for domain input"
+  },
+  "btnAddDomain": {
+    "message": "추가",
+    "description": "Button to add domain"
+  },
+  "btnClearCustomDomains": {
+    "message": "등록된 모든 사이트 캐시 일괄 삭제 (로그인 유지)",
+    "description": "Button to clear custom domains"
+  },
+  "noCustomDomains": {
+    "message": "등록된 사이트가 없습니다. 위 입력창에서 도메인을 추가하세요.",
+    "description": "Empty state for custom domains"
+  },
+  "schedulerHeader": {
+    "message": "지정 사이트 자동 캐시 비우기 (스케줄러)",
+    "description": "Header for scheduler"
+  },
+  "schedulerDesc": {
+    "message": "등록된 사이트의 캐시를 백그라운드에서 주기적으로 비웁니다. 화면 간섭을 방지하기 위해 새로고침 없이 캐시만 조용히 정리됩니다.",
+    "description": "Description for scheduler"
+  },
+  "optSchedulerEnable": {
+    "message": "스케줄러 활성화",
+    "description": "Enable scheduler checkbox"
+  },
+  "lblScheduleDomain": {
+    "message": "대상 사이트:",
+    "description": "Label for target domain"
+  },
+  "lblScheduleInterval": {
+    "message": "실행 주기 (분 단위 수동 입력):",
+    "description": "Label for interval"
+  },
+  "optScheduleNotify": {
+    "message": "캐시 자동 정리 시 크롬 알림(Notification) 및 배지 표시",
+    "description": "Notification checkbox"
+  },
+  "sandboxCleanHeader": {
+    "message": "전체 브라우저 캐시 비상 청소 (Sandbox Clean)",
+    "description": "Header for sandbox clean"
+  },
+  "sandboxCleanDesc": {
+    "message": "브라우저 전체 사이트의 HTTP 캐시, 서비스 워커, 캐시 스토리지를 즉시 일괄 삭제합니다. 모든 사이트의 로그인 세션(쿠키, 스토리지)은 안전하게 보존됩니다.",
+    "description": "Description for sandbox clean"
+  },
+  "btnPurgeAllCache": {
+    "message": "전체 브라우저 캐시 즉시 비우기 (로그인 유지)",
+    "description": "Button to purge all cache"
+  },
+  "confirmPurgeAll": {
+    "message": "브라우저 전체 사이트의 캐시를 삭제하시겠습니까? (로그인 상태는 그대로 유지됩니다)",
+    "description": "Confirm message"
+  },
+  "shortcutHelp": {
+    "message": "단축키 설정 및 충돌 방지: 크롬 주소창에 chrome://extensions/shortcuts 를 입력하여 원하는 복합 키로 언제든 변경할 수 있습니다.",
+    "description": "Help text for shortcuts"
+  },
+  "saveSuccess": {
+    "message": "설정이 성공적으로 저장되었습니다.",
+    "description": "Message shown when options are saved"
+  },
+  "saveButton": {
+    "message": "설정 저장",
+    "description": "Button label for saving settings"
+  },
+  "purgeSuccess": {
+    "message": "캐시가 성공적으로 삭제되었습니다.",
+    "description": "Purge success message"
+  },
+  "hudClearing": {
+    "message": "캐시 및 서비스 워커 정리 중...",
+    "description": "HUD message during cache clearance"
+  },
+  "hudReloading": {
+    "message": "강력 새로고침 실행...",
+    "description": "HUD message during page reload"
+  },
+  "notifTitle": {
+    "message": "KeepLogin Hard Reload",
+    "description": "Notification title"
+  },
+  "notifAutoPurge": {
+    "message": "지정 사이트 캐시가 백그라운드에서 자동 정리되었습니다.",
+    "description": "Notification message for auto purge"
+  }
+}

@@ -46,8 +46,8 @@ def sanitize_description(description: str) -> str:
         return ""
     
     # 기본 HTML 태그 제거 (보안상 이유)
-    description = re.sub(r'<script[^>]*>.*?</script>', '', description, flags=re.DOTALL | re.IGNORECASE)
-    description = re.sub(r'<style[^>]*>.*?</style>', '', description, flags=re.DOTALL | re.IGNORECASE)
+    description = re.sub(r'<script\b[^>]*>.*?</script\s*>', '', description, flags=re.DOTALL | re.IGNORECASE)
+    description = re.sub(r'<style\b[^>]*>.*?</style\s*>', '', description, flags=re.DOTALL | re.IGNORECASE)
     
     # 앞뒤 공백 제거
     description = description.strip()
