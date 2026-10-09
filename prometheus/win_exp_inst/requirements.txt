@@ -10,4 +10,4 @@ pywin32==306
 pywin32-ctypes==0.2.3
 requests==2.33.0
 setuptools==83.0.0
-urllib3==2.7.0
+urllib3==2.8.0
